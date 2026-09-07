@@ -44,18 +44,18 @@ GitHub does the compute and hosts the map — no Docker, no VPS, no API keys.
 4. Click **Run workflow**. An `ubuntu-latest` runner installs `requirements.txt` and runs `python main.py …`. Typical run: 5–10 min cold on Actions (dependency install + full solve); ~1 min locally with a warm `data/cache/`.
 5. When green, download results from the run page under **Artifacts** (`ap-placement-<N>`, 90-day retention): `ap_placement.json`, `ap_placement.kml`, `summary.md`.
 6. If `publish=true`, the same files + viewer are deployed to the GitHub Pages site at
-   [https://nycmeshnet.github.io/greenwood-wifi/](https://nycmeshnet.github.io/greenwood-wifi/) (one-time setup: Settings → Pages → Source: **GitHub Actions**).
+   [https://aka5hkumar.github.io/greenwood-wifi-placement/](https://aka5hkumar.github.io/greenwood-wifi-placement/) (one-time setup: Settings → Pages → Source: **GitHub Actions**).
 
 Public repos get effectively unlimited Actions minutes for this.
 
-_Forked this repo? Replace `nycmeshnet/greenwood-wifi` in the links above with your `org/repo` — the workflow, viewer, and Pages deploy are org-agnostic and work unchanged._
+_Links above point at this fork (`aka5hkumar/greenwood-wifi-placement`); upstream is `nycmeshnet/greenwood-wifi`. The workflow, viewer, and Pages deploy are org-agnostic and work unchanged._
 
 ### Option B — view results (no compute)
 
-* **Hosted map:** open [https://nycmeshnet.github.io/greenwood-wifi/](https://nycmeshnet.github.io/greenwood-wifi/). Green = viable, yellow = marginal. Table + per-AP Google Maps links included.
+* **Hosted map:** open [https://aka5hkumar.github.io/greenwood-wifi-placement/](https://aka5hkumar.github.io/greenwood-wifi-placement/). Green = viable, yellow = marginal. Table + per-AP Google Maps links included.
 * **Local file:** open `viewer/index.html` directly in a browser (double-click works). It tries `./ap_placement.json`, then `../output/ap_placement.json`. Use the file picker to load any run's JSON.
-* **Google Earth:** Earth Web has no `?kml=` deep-link, so download `ap_placement.kml` and drag it into [earth.google.com](https://earth.google.com). In Earth Desktop use Add → Network Link with [https://nycmeshnet.github.io/greenwood-wifi/ap_placement.kml](https://nycmeshnet.github.io/greenwood-wifi/ap_placement.kml).
-* **Other open tools:** `Open in geojson.io` button (works for ~40 points), or uMap → Import from URL with [https://nycmeshnet.github.io/greenwood-wifi/ap_placement.json](https://nycmeshnet.github.io/greenwood-wifi/ap_placement.json).
+* **Google Earth:** Earth Web has no `?kml=` deep-link, so download `ap_placement.kml` and drag it into [earth.google.com](https://earth.google.com). In Earth Desktop use Add → Network Link with [https://aka5hkumar.github.io/greenwood-wifi-placement/ap_placement.kml](https://aka5hkumar.github.io/greenwood-wifi-placement/ap_placement.kml).
+* **Other open tools:** `Open in geojson.io` button (works for ~40 points), or uMap → Import from URL with [https://aka5hkumar.github.io/greenwood-wifi-placement/ap_placement.json](https://aka5hkumar.github.io/greenwood-wifi-placement/ap_placement.json).
 
 ## Hardware assumptions (per AP node, all tunable via flags)
 
