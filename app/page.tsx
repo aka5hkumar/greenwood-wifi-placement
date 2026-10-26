@@ -6,8 +6,9 @@ import dynamic from "next/dynamic";
 import SearchBox from "./components/SearchBox";
 import ParamsPanel from "./components/ParamsPanel";
 import StatsPanel from "./components/StatsPanel";
-import LoadingOverlay from "./components/LoadingOverlay";
+import { ProgressRing, useComputeProgress } from "./components/ComputeProgress";
 import { circlePolygon } from "./lib/geo";
+import { fetchJson } from "./lib/fetchJson";
 import type {
   ComputeError,
   ComputeResponse,
@@ -31,6 +32,17 @@ interface PendingSite {
 const DEFAULT_RANGE_2G = 2000;
 const DEFAULT_RANGE_5G = 1250;
 
+/** Plain-language headings for the raw error codes the API returns. */
+const ERROR_TITLES: Record<string, string> = {
+  NoBoundaryError: "Couldn't find that site's outline.",
+  NoViableCandidatesError: "Nowhere here gets enough sun.",
+  NoSolutionError: "Couldn't cover this site.",
+  rate_limited: "Too many runs just now.",
+  forbidden: "Request blocked.",
+  request_failed: "The calculation didn't complete.",
+  internal_error: "Something went wrong.",
+};
+
 function PageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,6 +53,7 @@ function PageInner() {
   const [error, setError] = useState<ComputeError | null>(null);
   const [pending, setPending] = useState<PendingSite | null>(null);
   const [useCircle, setUseCircle] = useState(false);
+  const [boundaryLookup, setBoundaryLookup] = useState(false);
 
   const [range2g, setRange2g] = useState(DEFAULT_RANGE_2G);
   const [range5g, setRange5g] = useState(DEFAULT_RANGE_5G);
@@ -48,6 +61,7 @@ function PageInner() {
   const [coverage, setCoverage] = useState<CoverageMode>("full");
 
   const appliedUrlParams = useRef(false);
+  const progress = useComputeProgress(stage === "loading");
 
   // Load demo result on first mount (unless URL already specifies a location)
   useEffect(() => {
@@ -108,30 +122,40 @@ function PageInner() {
   async function handleSelectLocation(geo: GeocodeResult) {
     setError(null);
     setIsDemo(false);
-    try {
-      const res = await fetch(`/api/boundary?lat=${geo.lat}&lon=${geo.lon}`);
-      const data = await res.json();
-      const boundary = data.ok ? data.boundary : null;
+
+    // The geocoder already returns the feature's real outline, so the
+    // confirmation step is instant. Only fall back to Overpass when the
+    // search hit had no polygon (a plain address, say) — that service is
+    // frequently rate-limited and slow, so it must never be on the fast path.
+    if (geo.boundary && geo.boundary.length > 3) {
       setPending({
         lat: geo.lat,
         lon: geo.lon,
         displayName: geo.display_name,
-        boundary,
-        boundaryLookupFailed: !boundary,
+        boundary: geo.boundary,
+        boundaryLookupFailed: false,
       });
-      setUseCircle(!boundary);
+      setUseCircle(false);
       setStage("boundary-preview");
-    } catch {
-      setPending({
-        lat: geo.lat,
-        lon: geo.lon,
-        displayName: geo.display_name,
-        boundary: null,
-        boundaryLookupFailed: true,
-      });
-      setUseCircle(true);
-      setStage("boundary-preview");
+      return;
     }
+
+    setBoundaryLookup(true);
+    const res = await fetchJson<{ ok: boolean; boundary: [number, number][] | null }>(
+      `/api/boundary?lat=${geo.lat}&lon=${geo.lon}`
+    );
+    setBoundaryLookup(false);
+
+    const boundary = res.ok && res.data.ok ? res.data.boundary : null;
+    setPending({
+      lat: geo.lat,
+      lon: geo.lon,
+      displayName: geo.display_name,
+      boundary,
+      boundaryLookupFailed: !boundary,
+    });
+    setUseCircle(!boundary);
+    setStage("boundary-preview");
   }
 
   const runCompute = useCallback(
@@ -147,38 +171,37 @@ function PageInner() {
     ) => {
       setStage("loading");
       setError(null);
-      try {
-        const res = await fetch("/api/compute", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lat: site.lat,
-            lon: site.lon,
-            site_name: site.site_name,
-            range_2g_ft: params.range2g,
-            range_5g_ft: params.range5g,
-            range_6g_ft: params.range6g,
-            coverage: params.coverage,
-            boundary,
-            cache_key: null,
-          }),
-        });
-        const data: ComputeResponse = await res.json();
-        if (data.ok) {
-          setResult(data);
-          setStage("result");
-          setIsDemo(false);
-          syncUrl(site);
-        } else {
-          setError(data);
-          setStage("error");
-        }
-      } catch (e) {
-        setError({
-          ok: false,
-          error: "internal_error",
-          message: e instanceof Error ? e.message : "Network error contacting the compute API.",
-        });
+
+      const res = await fetchJson<ComputeResponse>("/api/compute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat: site.lat,
+          lon: site.lon,
+          site_name: site.site_name,
+          range_2g_ft: params.range2g,
+          range_5g_ft: params.range5g,
+          range_6g_ft: params.range6g,
+          coverage: params.coverage,
+          boundary,
+          cache_key: null,
+        }),
+      });
+
+      if (!res.ok) {
+        setError({ ok: false, error: "request_failed", message: res.message });
+        setStage("error");
+        return;
+      }
+
+      const data = res.data;
+      if (data.ok) {
+        setResult(data);
+        setStage("result");
+        setIsDemo(false);
+        syncUrl(site);
+      } else {
+        setError(data);
         setStage("error");
       }
     },
@@ -212,9 +235,49 @@ function PageInner() {
 
   const disabled = stage === "loading";
 
+  // Params no longer match the displayed result, so a recalculation would
+  // change something. Drives the enabled state of the action button.
+  const paramsDiffer =
+    !!result &&
+    (result.params_used.range_2g_ft !== range2g ||
+      result.params_used.range_5g_ft !== range5g ||
+      (result.params_used.range_6g_ft ?? null) !== range6g ||
+      result.params_used.coverage !== coverage);
+
+  const canRecalc = !!pending || paramsDiffer || isDemo;
+
+  let actionLabel = "Recalculate";
+  if (pending) actionLabel = "Calculate placement";
+  else if (isDemo) actionLabel = "Run this live";
+  else if (!paramsDiffer) actionLabel = "Up to date";
+
+  function handleAction() {
+    if (pending) return handleRunCompute();
+    const site = result
+      ? {
+          lat: result.params_used.lat,
+          lon: result.params_used.lon,
+          site_name: result.site_name,
+        }
+      : null;
+    if (!site) return;
+    runCompute(
+      site,
+      { range2g, range5g, range6g, coverage },
+      result ? result.boundary_coords : null
+    );
+  }
+
   return (
     <div>
       <SearchBox onSelect={handleSelectLocation} disabled={disabled} />
+
+      {boundaryLookup && (
+        <div className="card inline-status">
+          <ProgressRing fraction={0.3} />
+          <span>Looking up the site outline…</span>
+        </div>
+      )}
 
       {stage === "boundary-preview" && pending && (
         <div className="card boundary-confirm">
@@ -222,8 +285,8 @@ function PageInner() {
             <strong>{pending.displayName}</strong>
             <div className="subtle">
               {pending.boundary
-                ? "Boundary resolved from OpenStreetMap. Confirm below or use a simple radius instead."
-                : "No OSM boundary polygon found for this point — falling back to a 300 m radius circle."}
+                ? "This outline came from OpenStreetMap. Check it looks right on the map, then calculate."
+                : "No mapped outline for this spot — using a 300 m circle around it instead."}
             </div>
           </div>
           {pending.boundary && (
@@ -233,20 +296,17 @@ function PageInner() {
                 className={`toggle-btn${!useCircle ? " active" : ""}`}
                 onClick={() => setUseCircle(false)}
               >
-                Use OSM boundary
+                Site outline
               </button>
               <button
                 type="button"
                 className={`toggle-btn${useCircle ? " active" : ""}`}
                 onClick={() => setUseCircle(true)}
               >
-                Use 300m circle
+                300 m circle
               </button>
             </div>
           )}
-          <button type="button" className="btn" onClick={handleRunCompute}>
-            Run placement for this site
-          </button>
           <button
             type="button"
             className="btn btn-secondary"
@@ -264,14 +324,17 @@ function PageInner() {
         <div className="error-banner">
           {error.error === "area_too_large" ? (
             <>
-              <strong>Site too large.</strong> This boundary covers {error.area_acres.toFixed(1)}{" "}
-              acres, which exceeds the {error.max_area_acres.toFixed(1)}-acre limit for a live
-              compute. Try a smaller site, or reduce 2.4/5 GHz range so fewer candidates are
-              needed.
+              <strong>Site too large for a live run.</strong> This outline covers{" "}
+              {Math.round(error.area_acres).toLocaleString()} acres, above the{" "}
+              {Math.round(error.max_area_acres).toLocaleString()}-acre limit at your current
+              settings. Longer-range access points cover more ground each, so{" "}
+              <em>raising</em> the 2.4&nbsp;GHz range raises this limit — or pick a smaller
+              site.
             </>
           ) : (
             <>
-              <strong>{error.error}.</strong> {error.message}
+              <strong>{ERROR_TITLES[error.error] ?? "Something went wrong."}</strong>{" "}
+              {error.message}
             </>
           )}
         </div>
@@ -293,6 +356,36 @@ function PageInner() {
             }}
           />
 
+          <div className="action-bar">
+            <button
+              type="button"
+              className="btn btn-action"
+              onClick={handleAction}
+              disabled={disabled || !canRecalc}
+            >
+              {disabled ? (
+                <>
+                  <ProgressRing fraction={progress.fraction} />
+                  <span>{progress.phaseLabel}</span>
+                  <span className="btn-timer">{Math.round(progress.elapsed)}s</span>
+                </>
+              ) : (
+                actionLabel
+              )}
+            </button>
+            <p className="field-hint action-hint">
+              {disabled
+                ? "Fetching live map, elevation and sunlight data, then solving. Usually under a minute."
+                : pending
+                  ? "Runs the full model against this site."
+                  : paramsDiffer
+                    ? "Settings changed — recalculate to update the map."
+                    : isDemo
+                      ? "Shown from a saved run. Recompute it live, or search for another place."
+                      : "Change a setting above to recalculate."}
+            </p>
+          </div>
+
           {stage === "result" && result && (
             <>
               {isDemo && (
@@ -303,12 +396,20 @@ function PageInner() {
               )}
               <StatsPanel stats={result.stats} siteName={result.site_name} />
               <div className="card">
-                <h3 className="section-title">Access points ({result.aps.length})</h3>
+                <h3 className="section-title">
+                  Proposed access points ({result.aps.length})
+                </h3>
+                <p className="field-hint">
+                  Each row is one pole location. Click a marker on the map for its solar
+                  harvest, panel orientation, and coverage detail.
+                </p>
                 <div className="ap-list">
                   {result.aps.map((ap) => (
                     <div className="ap-row" key={ap.name}>
                       <span>{ap.name}</span>
-                      <span className={`status-pill ${ap.solar_status}`}>{ap.solar_status}</span>
+                      <span className={`status-pill ${ap.solar_status}`}>
+                        {ap.solar_status === "viable" ? "plenty of sun" : "just enough sun"}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -319,14 +420,24 @@ function PageInner() {
 
         <div className="map-container">
           <ResultMap boundary={mapBoundary} aps={mapAps} center={mapCenter} />
-          {stage === "loading" && <LoadingOverlay />}
+          {/* No full-screen overlay while computing — the map stays readable
+              and progress lives in the action button instead. */}
           {(mapBoundary || mapAps.length > 0) && (
             <div className="legend">
+              <div className="legend-title">Proposed access points</div>
               <div className="legend-item">
-                <span className="dot dot-viable" /> Solar viable
+                <span className="dot dot-viable" />
+                <span>
+                  Plenty of sun
+                  <em>comfortable power margin</em>
+                </span>
               </div>
               <div className="legend-item">
-                <span className="dot dot-marginal" /> Marginal
+                <span className="dot dot-marginal" />
+                <span>
+                  Just enough sun
+                  <em>little margin — may need a better-sited panel</em>
+                </span>
               </div>
             </div>
           )}

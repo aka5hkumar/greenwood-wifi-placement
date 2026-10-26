@@ -389,6 +389,20 @@ main > div,
 
 /* --- Controls ----------------------------------------------------------- */
 
+.field-intro {
+  margin: -0.25rem 0 1.15rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.field-hint {
+  margin: -0.15rem 0 0.5rem;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
 .field-group {
   margin-bottom: 1.15rem;
 }
@@ -522,6 +536,79 @@ input[type="range"]:disabled {
   border-color: var(--solar-deep);
 }
 
+/* Primary action: calculate / recalculate, with progress shown inside the
+   button rather than as a full-bleed overlay. */
+.action-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  min-height: 2.5rem;
+}
+
+.btn-action:disabled {
+  cursor: default;
+}
+
+/* Running: keep it legible rather than greying it out. */
+.btn-action:disabled:has(.progress-ring) {
+  opacity: 1;
+  background: var(--paper-sunken);
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+/* Nothing to do — settings already match the result. */
+.btn-action:disabled:not(:has(.progress-ring)) {
+  background: transparent;
+  border-color: var(--rule);
+  color: var(--ink-faint);
+}
+
+.btn-timer {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+}
+
+.action-hint {
+  margin: 0;
+}
+
+.progress-ring {
+  flex: none;
+}
+
+.progress-ring-track {
+  stroke: var(--rule-strong);
+}
+
+.progress-ring-fill {
+  stroke: var(--solar);
+  transition: stroke-dashoffset 0.25s linear;
+}
+
+.inline-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  font-family: var(--font-data);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: var(--ink-soft);
+}
+
 .btn-secondary {
   background: transparent;
   color: var(--ink-soft);
@@ -611,6 +698,43 @@ input[type="range"]:disabled {
   color: var(--ink-faint);
 }
 
+/* Explanatory readout under the stat tiles: a term paired with a plain
+   sentence, so no figure stands alone without its units or denominator. */
+.readout {
+  margin: 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.readout-row {
+  display: grid;
+  grid-template-columns: 4.6rem 1fr;
+  gap: 0.7rem;
+  align-items: start;
+}
+
+.readout-row dt {
+  font-family: var(--font-data);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--ink-faint);
+  padding-top: 0.2rem;
+}
+
+.readout-row dd {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.readout-row dd strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .ap-list {
   max-height: 290px;
   overflow-y: auto;
@@ -682,7 +806,8 @@ input[type="range"]:disabled {
   position: absolute;
   bottom: 12px;
   left: 12px;
-  z-index: 10;
+  /* Below MapLibre popups (which it used to cover) but above the canvas. */
+  z-index: 4;
   background: color-mix(in srgb, var(--paper-raised) 92%, transparent);
   backdrop-filter: blur(6px);
   border: var(--rule-w) solid var(--rule-strong);
@@ -698,10 +823,34 @@ input[type="range"]:disabled {
   color: var(--ink-soft);
 }
 
+.legend-title {
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.11em;
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.1rem;
+  border-bottom: var(--rule-w) solid var(--rule);
+}
+
 .legend-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.45rem;
+  max-width: 24ch;
+}
+
+.legend-item .dot {
+  margin-top: 2px;
+}
+
+.legend-item em {
+  display: block;
+  font-style: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.64rem;
+  line-height: 1.35;
+  color: var(--ink-faint);
 }
 
 .dot {
@@ -878,6 +1027,38 @@ input[type="range"]:disabled {
 
 /* --- MapLibre overrides so popups/controls match the theme -------------- */
 
+.ap-popup {
+  font-size: 11.5px;
+  line-height: 1.5;
+  max-width: 250px;
+}
+
+.ap-popup > strong {
+  display: block;
+  padding-bottom: 0.3rem;
+  margin-bottom: 0.4rem;
+  border-bottom: var(--rule-w) solid var(--rule);
+  letter-spacing: 0.04em;
+}
+
+.ap-popup dl {
+  margin: 0;
+  display: grid;
+  gap: 0.35rem 0;
+}
+
+.ap-popup dt {
+  font-size: 0.56rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--ink-faint);
+}
+
+.ap-popup dd {
+  margin: 0 0 0.15rem;
+  color: var(--ink-soft);
+}
+
 .maplibregl-popup-content {
   background: var(--paper-raised) !important;
   color: var(--ink) !important;
@@ -907,4 +1088,9 @@ input[type="range"]:disabled {
 
 .maplibregl-ctrl-group button + button {
   border-top: var(--rule-w) solid var(--rule) !important;
+}
+
+/* MapLibre popups must win over the legend in the stacking order. */
+.maplibregl-popup {
+  z-index: 12;
 }

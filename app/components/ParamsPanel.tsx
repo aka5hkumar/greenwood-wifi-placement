@@ -26,7 +26,13 @@ export default function ParamsPanel({
 }: ParamsPanelProps) {
   return (
     <div className="card">
-      <h3 className="section-title">Access point parameters</h3>
+      <h3 className="section-title">The hardware you plan to deploy</h3>
+
+      <p className="field-intro">
+        Enter the rated line-of-sight range of your access point on each band. The optimizer
+        derates these for distance, terrain, and signal loss through tree canopy, so real
+        coverage is always shorter than the rated figure.
+      </p>
 
       <div className="field-group">
         <label className="field-label" htmlFor="range2g">
@@ -84,8 +90,13 @@ export default function ParamsPanel({
 
       <div className="field-group">
         <label className="field-label">
-          <span>Coverage mode</span>
+          <span>What needs coverage?</span>
         </label>
+        <p className="field-hint">
+          {coverage === "full"
+            ? "Every point inside the site boundary must reach an access point."
+            : "Only walkable paths need coverage — far fewer access points."}
+        </p>
         <div className="toggle-row">
           <button
             type="button"

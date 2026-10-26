@@ -866,7 +866,11 @@
     "report_point_count": 19540,
     "total_covered": 17431,
     "coverage_pct": 89.2,
-    "ap_count": 45
+    "ap_count": 45,
+    "operating_months_label": "Mar\u2013Oct",
+    "shoulder_months_label": "Nov\u2013Feb",
+    "freezing_months_label": "none",
+    "design_peak_sun_hours": 3.0
   },
   "cached": true,
   "note": "Pre-computed result shown instantly on load. Search for a new location to run the pipeline live."

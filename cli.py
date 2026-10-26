@@ -35,6 +35,8 @@ from data.solar_irradiance import (
     fetch_solar_and_temperature,
     get_design_month,
     shoulder_months,
+    classify_months,
+    format_month_span,
     MONTH_NAMES,
 )
 from models.terrain import TerrainModel, to_utm, to_wgs84, configure_projection, current_epsg
@@ -255,6 +257,21 @@ def run_pipeline(
         )
     configure_projection(*boundary.centroid.coords[0])
 
+    # Check the size guardrail BEFORE any of the expensive fetches below.
+    # Those calls (Overpass for trees/buildings/paths, the elevation grid)
+    # are the slowest part of the run, so an over-cap site must be rejected
+    # here rather than after burning the whole serverless time budget.
+    boundary_utm = Polygon(
+        [to_utm(lon_, lat_) for lon_, lat_ in boundary.exterior.coords],
+        holes=[
+            [to_utm(lon_, lat_) for lon_, lat_ in interior.coords]
+            for interior in boundary.interiors
+        ],
+    )
+    ok, area_info = check_area(boundary_utm.area, primary_range_m)
+    if enforce_area_cap and not ok:
+        raise AreaTooLargeError(area_info)
+
     trees = fetch_trees(boundary, no_cache=no_cache, cache_key=cache_key)
     buildings = fetch_buildings(boundary, no_cache=no_cache, cache_key=cache_key)
     paths = fetch_paths(boundary, no_cache=no_cache, cache_key=cache_key)
@@ -269,6 +286,7 @@ def run_pipeline(
     )
     design_month, design_ghi = get_design_month(solar_data)
     off_season = shoulder_months(solar_data)
+    month_classes = classify_months(solar_data)
     print(
         f"Design month: {MONTH_NAMES[design_month]} "
         f"(GHI {design_ghi:.0f} Wh/m²/day, "
@@ -278,22 +296,10 @@ def run_pipeline(
         print(f"Shoulder months (limited solar, daytime-only): {', '.join(off_season)}")
 
     # ------------------------------------------------------------------
-    # 2. Build terrain model + area guardrail
+    # 2. Build terrain model  (area guardrail already applied above)
     # ------------------------------------------------------------------
     print("\n=== Building Terrain Model ===")
     terrain = TerrainModel(elevation, elev_transform, trees, buildings)
-
-    boundary_utm = Polygon(
-        [to_utm(lon_, lat_) for lon_, lat_ in boundary.exterior.coords],
-        holes=[
-            [to_utm(lon_, lat_) for lon_, lat_ in interior.coords]
-            for interior in boundary.interiors
-        ],
-    )
-
-    ok, area_info = check_area(boundary_utm.area, primary_range_m)
-    if enforce_area_cap and not ok:
-        raise AreaTooLargeError(area_info)
 
     # ------------------------------------------------------------------
     # 3. Generate candidate and test-point grids
@@ -527,6 +533,12 @@ def run_pipeline(
         "stats": {
             "design_month": MONTH_NAMES[design_month],
             "design_ghi_wh_m2_day": round(design_ghi, 0),
+            # Peak sun-hours is the intuitive form of GHI: 3,000 Wh/m²/day at
+            # 1000 W/m² reference irradiance ≈ 3.0 hours of full sun.
+            "design_peak_sun_hours": round(design_ghi / 1000.0, 1),
+            "operating_months_label": format_month_span(month_classes["operating"]),
+            "shoulder_months_label": format_month_span(month_classes["shoulder"]),
+            "freezing_months_label": format_month_span(month_classes["freezing"]),
             "shoulder_months": off_season,
             "area_acres": round(area_info["area_acres"], 1),
             "candidate_count": len(candidates),

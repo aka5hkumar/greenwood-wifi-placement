@@ -89,3 +89,69 @@ class TestShoulderMonths:
         data = _make_solar_data({1: (500, 30.0), 6: (5000, 72.0)})
         shoulders = shoulder_months(data)
         assert "Month1" not in shoulders
+
+
+class TestMonthClassification:
+    """The operating window is what the UI reports, so its edges matter."""
+
+    @staticmethod
+    def _data(spec):
+        """spec: {month: (ghi_wh_per_day, avg_temp_f)}"""
+        from data.solar_irradiance import MONTH_NAMES
+        return {
+            str(m): {"ghi_wh_per_day": g, "avg_temp_f": t, "month_name": MONTH_NAMES[m]}
+            for m, (g, t) in spec.items()
+        }
+
+    def test_freezing_beats_sunny(self):
+        """A sunny but sub-cutoff month is freezing, not operating."""
+        from data.solar_irradiance import classify_months
+        c = classify_months(self._data({1: (9000, 20.0)}))
+        assert c["freezing"] == [1]
+        assert c["operating"] == [] and c["shoulder"] == []
+
+    def test_warm_but_dim_is_shoulder(self):
+        from data.solar_irradiance import classify_months
+        c = classify_months(self._data({6: (500, 70.0)}))
+        assert c["shoulder"] == [6]
+
+    def test_warm_and_sunny_is_operating(self):
+        from data.solar_irradiance import classify_months
+        c = classify_months(self._data({6: (9000, 70.0)}))
+        assert c["operating"] == [6]
+
+    def test_categories_are_disjoint_and_total_twelve(self):
+        import json, os
+        from data.solar_irradiance import classify_months, _BROOKLYN_FALLBACK, MONTH_NAMES
+        sd = {str(m): {**d, "month_name": MONTH_NAMES[m]} for m, d in _BROOKLYN_FALLBACK.items()}
+        c = classify_months(sd)
+        allm = c["operating"] + c["shoulder"] + c["freezing"]
+        assert sorted(allm) == list(range(1, 13))
+        assert len(set(allm)) == 12
+
+
+class TestMonthSpanFormatting:
+    def test_contiguous_run(self):
+        from data.solar_irradiance import format_month_span
+        assert format_month_span([3, 4, 5, 6, 7, 8, 9, 10]) == "Mar–Oct"
+
+    def test_wraps_year_end(self):
+        """Nov-Dec-Jan-Feb must read as one winter span, not two."""
+        from data.solar_irradiance import format_month_span
+        assert format_month_span([11, 12, 1, 2]) == "Nov–Feb"
+
+    def test_full_year(self):
+        from data.solar_irradiance import format_month_span
+        assert format_month_span(list(range(1, 13))) == "year-round"
+
+    def test_empty(self):
+        from data.solar_irradiance import format_month_span
+        assert format_month_span([]) == "none"
+
+    def test_single_month(self):
+        from data.solar_irradiance import format_month_span
+        assert format_month_span([5]) == "May"
+
+    def test_disjoint_runs(self):
+        from data.solar_irradiance import format_month_span
+        assert format_month_span([1, 2, 6, 7]) == "Jan–Feb, Jun–Jul"

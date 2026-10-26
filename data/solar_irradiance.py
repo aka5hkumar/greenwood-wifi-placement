@@ -184,6 +184,83 @@ def get_design_month(
     return worst, candidates[worst]["ghi_wh_per_day"]
 
 
+MONTH_ABBR = {
+    1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
+    7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec",
+}
+
+
+def classify_months(
+    solar_data: dict,
+    freeze_threshold_f: float = 34.0,
+    panel_w: float = 100.0,
+    load_w: float = 10.0,
+    derating: float = 0.80,
+) -> dict[str, list[int]]:
+    """
+    Split the year into the three categories the UI needs to explain itself:
+
+        operating — warm enough AND sunny enough for 24/7 operation
+        shoulder  — warm enough but short on sun; daytime-only operation
+        freezing  — below the battery's thermal cutoff
+
+    Returns month numbers (1-12) per category. This is the same test
+    get_design_month applies when picking the worst viable month, exposed
+    directly so callers can report the operating window rather than a single
+    unexplained "design month".
+    """
+    demand_wh = load_w * 24.0
+    min_viable_ghi = demand_wh / ((panel_w / 1000.0) * derating)
+
+    operating, shoulder, freezing = [], [], []
+    for month_str, d in solar_data.items():
+        month = int(month_str)
+        if d["avg_temp_f"] <= freeze_threshold_f:
+            freezing.append(month)
+        elif d["ghi_wh_per_day"] >= min_viable_ghi:
+            operating.append(month)
+        else:
+            shoulder.append(month)
+
+    return {
+        "operating": sorted(operating),
+        "shoulder": sorted(shoulder),
+        "freezing": sorted(freezing),
+    }
+
+
+def format_month_span(months: list[int]) -> str:
+    """
+    Render a set of month numbers as a human span, e.g. [3,4,...,10] →
+    "Mar–Oct", [12,1,2] → "Dec–Feb" (wrapping the year end), and
+    non-contiguous sets as comma-separated runs.
+    """
+    if not months:
+        return "none"
+    if len(months) == 12:
+        return "year-round"
+
+    ordered = sorted(set(months))
+    runs: list[list[int]] = []
+    for m in ordered:
+        if runs and m == runs[-1][-1] + 1:
+            runs[-1].append(m)
+        else:
+            runs.append([m])
+
+    # A run ending in December continues into one starting in January.
+    if len(runs) > 1 and runs[0][0] == 1 and runs[-1][-1] == 12:
+        runs[-1].extend(runs.pop(0))
+
+    parts = []
+    for run in runs:
+        if len(run) == 1:
+            parts.append(MONTH_ABBR[run[0]])
+        else:
+            parts.append(f"{MONTH_ABBR[run[0]]}–{MONTH_ABBR[run[-1]]}")
+    return ", ".join(parts)
+
+
 def shoulder_months(
     solar_data: dict,
     freeze_threshold_f: float = 34.0,

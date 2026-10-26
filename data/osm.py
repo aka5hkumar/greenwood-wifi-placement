@@ -27,8 +27,13 @@ _ENDPOINTS = [
     "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     "https://overpass-api.de/api/interpreter",
 ]
-_RETRIES_PER_ENDPOINT = 2
-_RETRY_DELAY_S = 3
+# Overpass mirrors are frequently rate-limited (HTTP 429) or slow. Retrying
+# twice per endpoint with 3 s sleeps across three mirrors could burn ~25 s
+# before raising — longer than the serverless budget, so the caller saw a
+# timeout rather than a clean failure. One attempt per endpoint, no sleeps,
+# fails over fast and still tries every mirror.
+_RETRIES_PER_ENDPOINT = 1
+_RETRY_DELAY_S = 0
 
 # Tags that plausibly bound a walkable site worth covering with WiFi.
 _SITE_TAG_FILTERS = [
@@ -56,7 +61,6 @@ def _query(query: str):
                 if attempt < _RETRIES_PER_ENDPOINT - 1:
                     time.sleep(_RETRY_DELAY_S)
         print(f"  Overpass {url} failed ({last_err}), trying next…")
-        time.sleep(1)
     raise RuntimeError(f"All Overpass endpoints failed. Last error: {last_err}")
 
 

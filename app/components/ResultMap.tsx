@@ -30,6 +30,23 @@ const SURVEY = {
   boundary: "#e3a53f",
 };
 
+// The pipeline emits 8-rose abbreviations ("S", "NW"); spell them out so the
+// popup reads "Aim it south", not "Aim it s".
+const COMPASS_WORD: Record<string, string> = {
+  N: "north",
+  NE: "north-east",
+  E: "east",
+  SE: "south-east",
+  S: "south",
+  SW: "south-west",
+  W: "west",
+  NW: "north-west",
+};
+
+function facingWord(facing: string): string {
+  return COMPASS_WORD[facing.trim().toUpperCase()] ?? facing;
+}
+
 // MapLibre resolves its worker relative to its own module URL, which breaks
 // once Next bundles it into a hashed chunk — the worker 404s and the map
 // renders as a blank grey canvas. scripts/copy-maplibre-worker.mjs puts the
@@ -136,14 +153,32 @@ export default function ResultMap({ boundary, aps, center }: ResultMapProps) {
         el.style.boxShadow = "0 0 0 1.5px rgba(0,0,0,0.45)";
         el.title = `${ap.name} — ${ap.solar_status}`;
 
+        // Demand is a fixed 10 W continuous load = 240 Wh/day; showing the
+        // harvest against it is far clearer than a bare Wh figure.
+        const demandWh = 240;
+        const marginPct = Math.round((ap.harvest_wh / demandWh - 1) * 100);
+        const marginText =
+          marginPct >= 0 ? `${marginPct}% more than it needs` : `${Math.abs(marginPct)}% short`;
+
         const popupHtml = `
-          <div style="font-size:12px; line-height:1.6;">
-            <strong>${ap.name}</strong><br/>
-            Bands: ${ap.bands.join(", ")}<br/>
-            Solar: ${ap.solar_status}<br/>
-            Harvest: ${ap.harvest_wh} Wh/day<br/>
-            Coverage eff.: ${ap.coverage_efficiency_pct}%<br/>
-            Panel facing: ${ap.panel_facing} (${ap.panel_azimuth_deg}&deg;, tilt ${ap.panel_tilt_deg}&deg;)
+          <div class="ap-popup">
+            <strong>${ap.name}</strong>
+            <dl>
+              <dt>Power</dt>
+              <dd>Collects ${Math.round(ap.harvest_wh)} Wh on an average day in the
+                  worst month, against the 240 Wh it uses — ${marginText}.</dd>
+              <dt>Solar panel</dt>
+              <dd>Aim it ${facingWord(ap.panel_facing)} (${ap.panel_azimuth_deg}&deg;),
+                  tilted ${ap.panel_tilt_deg}&deg; up from flat.</dd>
+              <dt>Shade</dt>
+              <dd>${Math.round(ap.shade_pct)}% of the sky is blocked by nearby trees.</dd>
+              <dt>Radio</dt>
+              <dd>Serves ${ap.bands.join(" and ")}. Reaches ${Math.round(
+                ap.coverage_efficiency_pct
+              )}% of the ground its rated range would cover on open, flat terrain.</dd>
+              <dt>Overlap</dt>
+              <dd>${Math.round(ap.overlap_pct)}% of its area is also served by a neighbour.</dd>
+            </dl>
           </div>
         `;
 

@@ -28,6 +28,14 @@ export interface ParamsUsed {
 export interface Stats {
   design_month: string;
   design_ghi_wh_m2_day: number;
+  /** GHI expressed as hours of full sun — the intuitive form. */
+  design_peak_sun_hours?: number;
+  /** e.g. "Mar–Oct", "year-round" — months with 24/7 operation. */
+  operating_months_label?: string;
+  /** Warm enough but short on sun; daytime-only operation. */
+  shoulder_months_label?: string;
+  /** Below the battery's thermal cutoff. */
+  freezing_months_label?: string;
   shoulder_months: string[];
   area_acres: number;
   candidate_count: number;
@@ -59,7 +67,16 @@ export interface ComputeErrorAreaTooLarge {
 
 export interface ComputeErrorGeneric {
   ok: false;
-  error: "NoBoundaryError" | "NoViableCandidatesError" | "NoSolutionError" | "internal_error";
+  error:
+    | "NoBoundaryError"
+    | "NoViableCandidatesError"
+    | "NoSolutionError"
+    | "internal_error"
+    | "rate_limited"
+    | "forbidden"
+    /** Client-side: the response never arrived or wasn't JSON (e.g. a
+     *  serverless timeout returning an HTML error page). */
+    | "request_failed";
   message: string;
 }
 
@@ -73,6 +90,9 @@ export interface GeocodeResult {
   lat: number;
   lon: number;
   boundingbox: [number, number, number, number];
+  /** The feature's real outline, when the search hit has one. Returned by
+   *  the geocoder itself, so no slow Overpass lookup is needed. */
+  boundary: [number, number][] | null;
 }
 
 export interface GeocodeResponse {
