@@ -96,7 +96,7 @@ make venv
 # Or manually:
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt pytest
+pip install -r api/requirements.txt pytest
 
 # Frontend
 npm install

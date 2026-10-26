@@ -1,7 +1,17 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/compute.py": { "maxDuration": 60 },
-    "api/boundary.py": { "maxDuration": 25 },
-    "api/geocode.py": { "maxDuration": 10 }
+    "api/compute.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{tests/**,plans/**,app/**,public/**,output/*.json,output/*.kml,output/*.md,data/cache/**,venv/**,node_modules/**,.next/**}"
+    },
+    "api/boundary.py": {
+      "maxDuration": 25,
+      "excludeFiles": "{tests/**,plans/**,app/**,public/**,output/*.json,output/*.kml,output/*.md,data/cache/**,venv/**,node_modules/**,.next/**}"
+    },
+    "api/geocode.py": {
+      "maxDuration": 10,
+      "excludeFiles": "{tests/**,plans/**,app/**,public/**,output/*.json,output/*.kml,output/*.md,data/cache/**,venv/**,node_modules/**,.next/**}"
+    }
   }
 }
