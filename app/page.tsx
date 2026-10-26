@@ -214,16 +214,6 @@ function PageInner() {
 
   return (
     <div>
-      <div className="hero">
-        <h1>Solar WiFi Placement Optimizer</h1>
-        <p>
-          Computes the minimum number of solar-powered WiFi access points needed to cover any
-          park, cemetery, or campus — using real OSM topology, elevation-based line-of-sight, and
-          an ILP set-cover solve. Search a location below, or explore the pre-computed Green-Wood
-          Cemetery example.
-        </p>
-      </div>
-
       <SearchBox onSelect={handleSelectLocation} disabled={disabled} />
 
       {stage === "boundary-preview" && pending && (
@@ -347,9 +337,33 @@ function PageInner() {
 }
 
 export default function Page() {
+  // The hero text lives here, outside the Suspense boundary, so it is
+  // server-rendered. PageInner calls useSearchParams(), which opts the whole
+  // subtree out of SSR — without this the initial HTML carried almost no
+  // text, and browser language detection would mis-identify the page and
+  // offer to translate it.
   return (
-    <Suspense fallback={<div className="subtle">Loading…</div>}>
-      <PageInner />
-    </Suspense>
+    <div>
+      <div className="hero">
+        <h1>Solar WiFi Placement Optimizer</h1>
+        <p>
+          Computes the minimum number of solar-powered WiFi access points needed to cover any
+          park, cemetery, or campus — using real OpenStreetMap topology, elevation-based
+          line-of-sight, vegetation attenuation, solar viability, and an integer-linear-program
+          set-cover solve. Search for a location below, or explore the pre-computed Green-Wood
+          Cemetery example.
+        </p>
+      </div>
+
+      <Suspense
+        fallback={
+          <div className="card subtle">
+            Loading the interactive map and the pre-computed Green-Wood Cemetery example…
+          </div>
+        }
+      >
+        <PageInner />
+      </Suspense>
+    </div>
   );
 }

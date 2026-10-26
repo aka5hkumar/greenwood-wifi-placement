@@ -1,11 +1,24 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Map as MLMap, Marker, Popup, NavigationControl, LngLatBounds } from "maplibre-gl";
+import {
+  Map as MLMap,
+  Marker,
+  Popup,
+  NavigationControl,
+  LngLatBounds,
+  setWorkerUrl,
+} from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { AccessPoint } from "../types";
 
 const BASEMAP_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+
+// MapLibre resolves its worker relative to its own module URL, which breaks
+// once Next bundles it into a hashed chunk — the worker 404s and the map
+// renders as a blank grey canvas. scripts/copy-maplibre-worker.mjs puts the
+// worker here at build time; point MapLibre at it explicitly.
+setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
 interface ResultMapProps {
   boundary: [number, number][] | null;

@@ -32,3 +32,6 @@ out/
 next-env.d.ts
 .vercel
 *.tsbuildinfo
+
+# Generated at build time by scripts/copy-maplibre-worker.mjs
+public/maplibre/
