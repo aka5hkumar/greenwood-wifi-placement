@@ -12,7 +12,23 @@ import {
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { AccessPoint } from "../types";
 
-const BASEMAP_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+// CARTO's keyless basemaps. Match the basemap to the OS colour scheme so a
+// light map never gets dropped into the dark theme.
+const BASEMAP_LIGHT = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+const BASEMAP_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+
+function prefersDark(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
+}
+
+const SURVEY = {
+  viable: "#8cbf6a",
+  marginal: "#e3a53f",
+  boundary: "#e3a53f",
+};
 
 // MapLibre resolves its worker relative to its own module URL, which breaks
 // once Next bundles it into a hashed chunk — the worker 404s and the map
@@ -44,7 +60,7 @@ export default function ResultMap({ boundary, aps, center }: ResultMapProps) {
 
     const map = new MLMap({
       container: containerRef.current,
-      style: BASEMAP_STYLE,
+      style: prefersDark() ? BASEMAP_DARK : BASEMAP_LIGHT,
       center: initialCenter,
       zoom: 14,
     });
@@ -88,8 +104,8 @@ export default function ResultMap({ boundary, aps, center }: ResultMapProps) {
           type: "fill",
           source: "boundary",
           paint: {
-            "fill-color": "#3fb8af",
-            "fill-opacity": 0.08,
+            "fill-color": SURVEY.boundary,
+            "fill-opacity": 0.07,
           },
         });
         map!.addLayer({
@@ -97,23 +113,31 @@ export default function ResultMap({ boundary, aps, center }: ResultMapProps) {
           type: "line",
           source: "boundary",
           paint: {
-            "line-color": "#3fb8af",
-            "line-width": 2,
+            "line-color": SURVEY.boundary,
+            "line-width": 1.5,
+            "line-dasharray": [4, 2],
           },
         });
       }
 
       aps.forEach((ap) => {
+        // Viable reads as a solid disc, marginal as a hollow ring — the
+        // distinction survives a colour-vision deficiency, where sage green
+        // against amber would not.
+        const viable = ap.solar_status === "viable";
         const el = document.createElement("div");
-        el.style.width = "14px";
-        el.style.height = "14px";
+        el.style.width = "13px";
+        el.style.height = "13px";
         el.style.borderRadius = "50%";
-        el.style.border = "2px solid rgba(0,0,0,0.35)";
-        el.style.background = ap.solar_status === "viable" ? "#3ecf6a" : "#e0b63f";
+        el.style.boxSizing = "border-box";
         el.style.cursor = "pointer";
+        el.style.border = `2px solid ${viable ? SURVEY.viable : SURVEY.marginal}`;
+        el.style.background = viable ? SURVEY.viable : "transparent";
+        el.style.boxShadow = "0 0 0 1.5px rgba(0,0,0,0.45)";
+        el.title = `${ap.name} — ${ap.solar_status}`;
 
         const popupHtml = `
-          <div style="font-size:12px; line-height:1.5; color:#111;">
+          <div style="font-size:12px; line-height:1.6;">
             <strong>${ap.name}</strong><br/>
             Bands: ${ap.bands.join(", ")}<br/>
             Solar: ${ap.solar_status}<br/>

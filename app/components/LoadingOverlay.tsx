@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 const PHASES = [
   { label: "Resolving boundary…", sub: "Pulling site topology from OpenStreetMap", ms: 0 },
-  { label: "Fetching elevation…", sub: "Downloading USGS 3DEP elevation raster", ms: 4000 },
+  { label: "Fetching elevation…", sub: "Sampling a bare-earth elevation grid point by point", ms: 4000 },
   { label: "Modeling terrain…", sub: "Ray-casting line-of-sight over trees and buildings", ms: 11000 },
   { label: "Checking solar viability…", sub: "NASA POWER irradiance + panel harvest model", ms: 20000 },
   { label: "Solving placement…", sub: "HiGHS ILP minimizing AP count via set cover", ms: 30000 },

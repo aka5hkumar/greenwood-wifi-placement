@@ -853,16 +853,16 @@
   },
   "stats": {
     "design_month": "October",
-    "design_ghi_wh_m2_day": 3000,
+    "design_ghi_wh_m2_day": 3026,
     "shoulder_months": [
       "January",
       "February",
       "November",
       "December"
     ],
-    "area_acres": 478.0,
-    "candidate_count": null,
-    "viable_candidate_count": null,
+    "area_acres": 482.9,
+    "candidate_count": 523,
+    "viable_candidate_count": 469,
     "report_point_count": 19540,
     "total_covered": 17431,
     "coverage_pct": 89.2,

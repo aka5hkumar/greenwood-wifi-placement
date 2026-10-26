@@ -24,9 +24,9 @@ export default function AboutPage() {
         <div className="pipeline-step">
           <span className="step-num">2</span>
           <div>
-            <strong>Elevation raster.</strong> Downloads a 5 m resolution elevation raster from
-            USGS 3DEP covering the site, used to build a digital surface model for line-of-sight
-            analysis.
+            <strong>Elevation grid.</strong> Samples a bare-earth elevation grid over the site
+            from a free point-query API, then paints tree canopy and building footprints onto it
+            to build the digital surface model used for line-of-sight analysis.
           </div>
         </div>
         <div className="pipeline-step">
@@ -108,8 +108,8 @@ export default function AboutPage() {
         </li>
         <li>
           This started as a CLI tool hardcoded to Green-Wood Cemetery in Brooklyn, NY, and has been
-          generalized to run against any coordinates worldwide where OpenStreetMap, USGS 3DEP, and
-          NASA POWER have coverage.
+          generalized to run against any coordinates worldwide where OpenStreetMap, the elevation
+          API, and NASA POWER have coverage.
         </li>
         <li>
           Green AP pins on the map are solar-viable; yellow pins are marginal and may need a
