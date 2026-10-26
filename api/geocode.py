@@ -10,7 +10,14 @@ from urllib.parse import urlparse, parse_qs
 
 import requests
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+# Vercel loads this file as a module without putting its own directory on
+# sys.path, so both the api/ dir (for the _respond / _ratelimit helpers) and
+# the repo root (for cli / data / models) have to be added explicitly.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(_HERE)
+for _p in (_HERE, _ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 from _respond import respond
 from _ratelimit import allow
 
