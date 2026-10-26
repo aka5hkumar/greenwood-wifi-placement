@@ -29,6 +29,15 @@ _REQUEST_DELAY_S = 1.0   # respect the public demo server's ~1 req/s rate limit
 RESOLUTION_M = 15.0
 BBOX_PAD_DEG = 0.002
 
+# Hard cap on grid points per site. The public endpoint accepts 100 points
+# per request and asks for ~1 req/s, so cost is roughly
+# (points / 100) seconds — a 357-acre park at a flat 15 m spacing needs
+# ~9,300 points, i.e. 90+ seconds of rate-limited calls, far beyond a
+# serverless request budget. Coarsening the grid for large sites keeps the
+# fetch bounded; terrain is a gentler signal than canopy at park scale, so
+# the loss of detail is acceptable where the alternative is no result.
+MAX_SAMPLE_POINTS = 1200
+
 
 def _elevation_cache_paths(cache_key: str) -> tuple[str, str]:
     return (
@@ -90,8 +99,16 @@ def fetch_elevation_raster(
     lat_m_per_deg = 111_320.0
     lon_m_per_deg = 111_320.0 * np.cos(np.radians(mid_lat))
 
-    nrows = max(20, int((maxy - miny) * lat_m_per_deg / RESOLUTION_M))
-    ncols = max(20, int((maxx - minx) * lon_m_per_deg / RESOLUTION_M))
+    height_m = (maxy - miny) * lat_m_per_deg
+    width_m = (maxx - minx) * lon_m_per_deg
+
+    # Coarsen uniformly until the grid fits inside MAX_SAMPLE_POINTS.
+    resolution_m = RESOLUTION_M
+    if (height_m * width_m) / (resolution_m ** 2) > MAX_SAMPLE_POINTS:
+        resolution_m = ((height_m * width_m) / MAX_SAMPLE_POINTS) ** 0.5
+
+    nrows = max(20, int(height_m / resolution_m))
+    ncols = max(20, int(width_m / resolution_m))
 
     transform = {
         "origin_lon": minx,
@@ -100,11 +117,11 @@ def fetch_elevation_raster(
         "cell_lat": -((maxy - miny) / nrows),
         "nrows": nrows,
         "ncols": ncols,
-        "resolution_m": RESOLUTION_M,
+        "resolution_m": resolution_m,
     }
 
     print(
-        f"Querying elevation grid ({ncols}×{nrows} px at {RESOLUTION_M:.0f} m, "
+        f"Querying elevation grid ({ncols}×{nrows} px at {resolution_m:.0f} m, "
         f"{nrows * ncols:,} points)..."
     )
 

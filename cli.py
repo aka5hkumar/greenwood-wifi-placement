@@ -5,7 +5,7 @@ Usage
 -----
     python cli.py                                   # Green-Wood defaults
     python cli.py --range-2g 2000 --range-5g 1250
-    python cli.py --lat 37.7694 --lon -122.4862      # Golden Gate Park
+    python cli.py --lat 37.7172 --lon -122.4212      # John McLaren Park, SF
     python cli.py --range-2g 2000 --range-5g 1250 --range-6g 800 --coverage paths
     python cli.py --help
 
@@ -29,7 +29,10 @@ from scipy.spatial import cKDTree
 from shapely.geometry import Point, Polygon
 from shapely.ops import transform as shapely_transform
 
-from data.osm import fetch_boundary, fetch_trees, fetch_buildings, fetch_paths
+from data.osm import (
+    fetch_boundary, fetch_trees, fetch_buildings, fetch_paths,
+    OverpassUnavailable,
+)
 from data.elevation import fetch_elevation_raster
 from data.solar_irradiance import (
     fetch_solar_and_temperature,
@@ -272,9 +275,39 @@ def run_pipeline(
     if enforce_area_cap and not ok:
         raise AreaTooLargeError(area_info)
 
-    trees = fetch_trees(boundary, no_cache=no_cache, cache_key=cache_key)
-    buildings = fetch_buildings(boundary, no_cache=no_cache, cache_key=cache_key)
-    paths = fetch_paths(boundary, no_cache=no_cache, cache_key=cache_key)
+    # Public Overpass mirrors are often rate-limited or overloaded. Tree and
+    # building data refine the model (canopy attenuation, LOS blocking) but
+    # are not required to produce a placement, so a failure here degrades
+    # fidelity instead of killing the run. The caller surfaces the warning.
+    warnings: list[str] = []
+    overpass_down = False
+
+    def _optional(fetch, label, fallback):
+        # Once every mirror has refused, further calls would each burn the
+        # same full round of timeouts — enough to exhaust the serverless
+        # budget on its own. Fail the rest immediately instead.
+        nonlocal overpass_down
+        if overpass_down:
+            warnings.append(label)
+            return fallback
+        try:
+            return fetch(boundary, no_cache=no_cache, cache_key=cache_key)
+        except OverpassUnavailable as exc:
+            print(f"  {label} unavailable ({exc}) — continuing without it.")
+            overpass_down = True
+            warnings.append(label)
+            return fallback
+
+    trees = _optional(fetch_trees, "tree canopy", [])
+    buildings = _optional(fetch_buildings, "building footprints", [])
+    paths = _optional(fetch_paths, "paths", [])
+
+    if coverage == "paths" and "paths" in warnings:
+        raise NoBoundaryError(
+            "Path data is unavailable right now (OpenStreetMap's query service is "
+            "overloaded), so 'paths only' coverage can't be computed. Switch to "
+            "full-grounds coverage or try again shortly."
+        )
 
     print("\n=== Fetching Elevation ===")
     elevation, elev_transform = fetch_elevation_raster(boundary, no_cache=no_cache, cache_key=cache_key)
@@ -525,6 +558,7 @@ def run_pipeline(
         "site_name": site_name,
         "boundary_coords": [[lon_, lat_] for lon_, lat_ in boundary.exterior.coords],
         "aps": aps,
+        "data_warnings": warnings,
         "params_used": {
             "lat": lat, "lon": lon,
             "range_2g_ft": range_2g_ft, "range_5g_ft": range_5g_ft, "range_6g_ft": range_6g_ft,

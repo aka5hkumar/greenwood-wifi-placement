@@ -16,17 +16,38 @@ import os
 import time
 
 import overpy
+import requests
 from shapely.geometry import LineString, Point, Polygon, mapping, shape
 from shapely.ops import unary_union
 
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
 
+class OverpassUnavailable(RuntimeError):
+    """Every Overpass mirror refused or timed out.
+
+    Public Overpass instances are frequently rate-limited or overloaded, so
+    callers should treat this as an expected condition and degrade rather
+    than abort — see run_pipeline's handling of trees/buildings/paths.
+    """
+
+
 # Overpass endpoints tried in order; first success wins.
 _ENDPOINTS = [
-    "https://overpass.kumi.systems/api/interpreter",
-    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ]
+
+# Overpass usage policy expects an identifying User-Agent; overpass-api.de
+# returns HTTP 406 without one.
+_HTTP_HEADERS = {
+    "User-Agent": os.environ.get(
+        "OVERPASS_USER_AGENT",
+        "greenwood-wifi-placement/1.0 (+https://github.com/aka5hkumar/greenwood-wifi-placement)",
+    ),
+}
+_HTTP_TIMEOUT_S = 8.0   # 4 mirrors x 8s = 32s worst case, inside a 60s function budget
 # Overpass mirrors are frequently rate-limited (HTTP 429) or slow. Retrying
 # twice per endpoint with 3 s sleeps across three mirrors could burn ~25 s
 # before raising — longer than the serverless budget, so the caller saw a
@@ -48,20 +69,33 @@ _SITE_TAG_FILTERS = [
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _query(query: str):
-    """Run an Overpass QL query with multi-endpoint fallback and per-endpoint retries."""
+def _query(query: str, timeout_s: float = _HTTP_TIMEOUT_S):
+    """Run an Overpass QL query with multi-endpoint fallback.
+
+    The HTTP call is made directly rather than through overpy.query() so we
+    can send a User-Agent — overpass-api.de rejects requests without one
+    (HTTP 406) — and bound the per-endpoint timeout. overpy still does the
+    JSON parsing, so callers get the usual Result object.
+    """
+    parser = overpy.Overpass()
     last_err = None
     for url in _ENDPOINTS:
         for attempt in range(_RETRIES_PER_ENDPOINT):
             try:
-                api = overpy.Overpass(url=url)
-                return api.query(query)
+                resp = requests.post(
+                    url, data={"data": query}, headers=_HTTP_HEADERS, timeout=timeout_s
+                )
+                if resp.status_code == 200:
+                    return parser.parse_json(resp.text)
+                # 429 = rate limited, 504 = server overloaded; both mean
+                # "try another mirror" rather than "retry here".
+                last_err = f"HTTP {resp.status_code}"
             except Exception as exc:
-                last_err = exc
-                if attempt < _RETRIES_PER_ENDPOINT - 1:
-                    time.sleep(_RETRY_DELAY_S)
+                last_err = f"{type(exc).__name__}: {exc}"
+            if attempt < _RETRIES_PER_ENDPOINT - 1 and _RETRY_DELAY_S:
+                time.sleep(_RETRY_DELAY_S)
         print(f"  Overpass {url} failed ({last_err}), trying next…")
-    raise RuntimeError(f"All Overpass endpoints failed. Last error: {last_err}")
+    raise OverpassUnavailable(f"All Overpass endpoints failed. Last error: {last_err}")
 
 
 def _bbox(boundary: Polygon) -> tuple[float, float, float, float]:

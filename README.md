@@ -67,7 +67,7 @@ python3 cli.py --range-6g 200                    # with 6 GHz tri-band AP
 python3 cli.py --coverage paths                  # cover walkable paths only
 
 # Any other location — pass a point inside the site
-python3 cli.py --lat 37.7694 --lon -122.4862 --site-name "Golden Gate Park"
+python3 cli.py --lat 37.7172 --lon -122.4212 --site-name "John McLaren Park"
 
 # Supply an exact boundary instead of the auto-resolved OSM polygon
 python3 cli.py --boundary-file my_site.geojson --site-name "My Park"

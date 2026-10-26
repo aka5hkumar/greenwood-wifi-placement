@@ -83,7 +83,7 @@ export default function SearchBox({ onSelect, disabled }: SearchBoxProps) {
       <input
         className="search-input"
         type="text"
-        placeholder="Search for a park, cemetery, or campus (e.g. &quot;Golden Gate Park&quot;)…"
+        placeholder="Search a park, cemetery, or campus — try &quot;John McLaren Park&quot;…"
         value={query}
         disabled={disabled}
         onChange={(e) => setQuery(e.target.value)}
