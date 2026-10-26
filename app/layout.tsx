@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
+import { Archivo, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
 // Self-hosted at build time by next/font — no runtime request to Google,
 // so the page stays keyless and dependency-free at runtime.
-const display = Space_Grotesk({
+//
+// Archivo is a sturdy American grotesque: close enough to the Helvetica
+// Neue nycmesh.net uses that the tool reads as part of the same family,
+// but with more presence at display weights.
+const display = Archivo({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-display",
   display: "swap",
 });
@@ -37,15 +41,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="site-header">
           <div className="site-header-inner">
             <Link href="/" className="brand">
+              {/* Echoes the NYC Mesh mark — yellow disc, black glyph — but
+                  draws a rooftop node radiating coverage instead of their
+                  antenna, since that is what this tool places. */}
               <svg
                 className="brand-mark"
-                viewBox="0 0 24 24"
+                viewBox="0 0 32 32"
                 aria-hidden
                 focusable="false"
               >
-                <circle cx="12" cy="12" r="9" />
-                <circle cx="12" cy="12" r="3.5" />
-                <path d="M12 0.5v5M12 18.5v5M0.5 12h5M18.5 12h5" />
+                <circle className="brand-disc" cx="16" cy="16" r="16" />
+                <g className="brand-glyph">
+                  <path d="M16 20.5V12" />
+                  <path d="M10.5 24.5 16 20.5l5.5 4" />
+                  <path d="M11.4 11.2a6.5 6.5 0 0 1 9.2 0" />
+                  <path d="M8.6 8a10.5 10.5 0 0 1 14.8 0" />
+                </g>
               </svg>
               <span className="brand-text">
                 Solar WiFi Placement

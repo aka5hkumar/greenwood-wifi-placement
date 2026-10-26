@@ -1,67 +1,83 @@
 /* ===========================================================================
-   Solar WiFi Placement — "field survey" theme
+   Solar WiFi Placement
    ---------------------------------------------------------------------------
-   Visual language borrowed from surveyor's drawings and field instruments:
-   warm paper / ink rather than slate, drafting-grid backdrop, hairline rules,
-   near-square corners, mono micro-labels in small caps, and tabular figures
-   for anything numeric. Status is encoded by shape as well as hue so the
-   viable/marginal distinction survives a colour-vision deficiency.
+   Built on the NYC Mesh visual language (nycmesh.net): a neo-grotesque face,
+   square corners everywhere, high-contrast black-on-white, and bright
+   functional accents — their blue #007AFF, green #19A974, orange #FF6300,
+   and the yellow of the logo disc. Utilitarian community-infrastructure,
+   not corporate SaaS. Dark mode is an inversion of the same system rather
+   than a different palette.
+
+   Status is encoded by shape as well as hue so the viable/marginal
+   distinction survives a colour-vision deficiency.
    ========================================================================= */
 
 :root {
-  /* Night survey (default) */
-  --paper: #121311;
-  --paper-raised: #191b17;
-  --paper-sunken: #0d0e0c;
-  --ink: #ece8dd;
-  --ink-soft: #a4a294;
-  --ink-faint: #6f6e63;
-  --rule: #2b2d27;
-  --rule-strong: #3d3f37;
+  /* Light — the nycmesh.net default */
+  --paper: #ffffff;
+  --paper-raised: #ffffff;
+  --paper-sunken: #f4f4f4;
+  --ink: #111111;
+  --ink-soft: #555555;
+  --ink-faint: #6e6e6e;
+  --rule: #e2e2e2;
+  --rule-strong: #111111;
 
-  --solar: #e3a53f; /* primary accent — the sun / the amber instrument lamp */
-  --solar-deep: #b47c22;
-  --viable: #8cbf6a; /* AP with sufficient solar harvest */
-  --marginal: #e3a53f; /* AP within 20% of demand */
-  --alert: #d9644c;
+  /* NYC Mesh's blue, darkened just enough that white label text clears
+     4.5:1 (their own #007aff only reaches 4.02:1). The brand hue is kept
+     for borders and marks, where contrast rules don't bite. */
+  --signal: #0062d6;        /* primary action */
+  --signal-deep: #0049a3;
+  --signal-bright: #007aff; /* brand blue, for strokes and map lines */
+  --on-signal: #ffffff;     /* text that sits on --signal */
+  --beacon: #ffd400;        /* the logo disc */
+  --viable: #138055;        /* ample solar margin — AA against white */
+  --viable-mark: #19a974;   /* brighter, for map marks and legend dots */
+  --on-viable: #ffffff;
+  --marginal: #c24700;      /* little margin — AA as text on white */
+  --marginal-mark: #ff6300;
+  --alert: #c22400;
 
-  --grid-line: rgba(236, 232, 221, 0.035);
-  --grid-line-strong: rgba(236, 232, 221, 0.055);
+  --grid-line: rgba(17, 17, 17, 0.055);
 
-  --radius: 3px;
+  --radius: 0px;            /* NYC Mesh is square throughout */
   --rule-w: 1px;
-  --shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  --shadow: none;
 
-  --font-sans: var(--font-display), "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-display), "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-data: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: light) {
+@media (prefers-color-scheme: dark) {
   :root {
-    /* Day survey — warm drafting paper */
-    --paper: #f1ede2;
-    --paper-raised: #faf7ef;
-    --paper-sunken: #e7e2d4;
-    --ink: #1a1915;
-    --ink-soft: #57544a;
-    --ink-faint: #817d70;
-    --rule: #d6d0c0;
-    --rule-strong: #b9b2a0;
+    --paper: #0e0e0e;
+    --paper-raised: #161616;
+    --paper-sunken: #1d1d1d;
+    --ink: #f2f2f2;
+    --ink-soft: #a6a6a6;
+    --ink-faint: #8a8a8a;
+    --rule: #2a2a2a;
+    --rule-strong: #f2f2f2;
 
-    --solar: #a96c12;
-    --solar-deep: #7d4e08;
-    --viable: #4a7533;
-    --marginal: #a96c12;
-    --alert: #a63a26;
+    /* Lifted for contrast against near-black. On these light fills the
+       label has to be dark, not white — hence --on-signal / --on-viable. */
+    --signal: #4da3ff;
+    --signal-deep: #7dbcff;
+    --signal-bright: #4da3ff;
+    --on-signal: #0e0e0e;
+    --beacon: #ffd400;
+    --viable: #2fbe85;
+    --viable-mark: #2fbe85;
+    --on-viable: #0e0e0e;
+    --marginal: #ff8a3d;
+    --marginal-mark: #ff8a3d;
+    --alert: #ff6a4d;
 
-    --grid-line: rgba(26, 25, 21, 0.045);
-    --grid-line-strong: rgba(26, 25, 21, 0.07);
+    --grid-line: rgba(242, 242, 242, 0.05);
 
-    --shadow: 0 1px 0 rgba(26, 25, 21, 0.06);
-
-    color-scheme: light;
+    color-scheme: dark;
   }
 }
 
@@ -77,17 +93,19 @@ body {
 
 body {
   background-color: var(--paper);
-  /* Drafting grid: 8px minor, 80px major. Pure CSS, no image requests. */
-  background-image:
-    linear-gradient(var(--grid-line-strong) var(--rule-w), transparent var(--rule-w)),
-    linear-gradient(90deg, var(--grid-line-strong) var(--rule-w), transparent var(--rule-w)),
-    linear-gradient(var(--grid-line) var(--rule-w), transparent var(--rule-w)),
-    linear-gradient(90deg, var(--grid-line) var(--rule-w), transparent var(--rule-w));
-  background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+  /* A faint echo of coverage rings radiating from a node, fixed in the
+     upper right. Pure CSS, no image request, and subtle enough not to
+     compete with the map. */
+  background-image: repeating-radial-gradient(
+    circle at 92% -8%,
+    var(--grid-line) 0 1px,
+    transparent 1px 86px
+  );
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: 16px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   display: flex;
   flex-direction: column;
@@ -103,15 +121,15 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid var(--solar);
+  outline: 2px solid var(--signal);
   outline-offset: 2px;
 }
 
 /* --- Header ------------------------------------------------------------- */
 
 .site-header {
-  border-bottom: var(--rule-w) solid var(--rule-strong);
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  border-bottom: var(--rule-w) solid var(--rule);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
   backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
@@ -137,39 +155,43 @@ a {
 }
 
 .brand-mark {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   flex: none;
+}
+
+.brand-disc {
+  fill: var(--beacon);
+}
+
+.brand-glyph {
   fill: none;
-  stroke: var(--solar);
-  stroke-width: 1.25;
-  vector-effect: non-scaling-stroke;
+  stroke: #111111;   /* stays dark on the yellow disc in both themes */
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .brand-text {
   display: flex;
   flex-direction: column;
   line-height: 1.15;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
 }
 
 .brand-sub {
-  font-family: var(--font-data);
-  font-size: 0.6rem;
+  font-size: 0.72rem;
   font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
   color: var(--ink-faint);
 }
 
 .site-nav {
   display: flex;
-  gap: 1.4rem;
-  font-family: var(--font-data);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.13em;
+  gap: 1.35rem;
+  font-size: 0.94rem;
+  font-weight: 500;
 }
 
 .site-nav a {
@@ -181,8 +203,8 @@ a {
 }
 
 .site-nav a:hover {
-  color: var(--ink);
-  border-bottom-color: var(--solar);
+  color: var(--signal);
+  border-bottom-color: var(--signal);
 }
 
 /* --- Footer ------------------------------------------------------------- */
@@ -200,10 +222,8 @@ a {
   flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: space-between;
-  font-family: var(--font-data);
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   color: var(--ink-faint);
-  letter-spacing: 0.03em;
 }
 
 .footer-coord {
@@ -223,32 +243,28 @@ main > div,
 
 .hero {
   padding: 1.25rem 0 1.75rem;
-  border-bottom: var(--rule-w) solid var(--rule);
+  border-bottom: 2px solid var(--ink);
   margin-bottom: 1.75rem;
   position: relative;
 }
 
-/* A surveyor's tick scale sitting on the hero rule, like the edge of a
-   drafting ruler. */
+/* A solid yellow bar under the hero — the one piece of brand colour that
+   anchors the page, mirroring the logo disc. */
 .hero::after {
   content: "";
   position: absolute;
   left: 0;
-  bottom: 0;
-  width: 168px;
-  height: 6px;
-  background-image: repeating-linear-gradient(
-    90deg,
-    var(--solar) 0 var(--rule-w),
-    transparent var(--rule-w) 12px
-  );
+  bottom: -2px;
+  width: 92px;
+  height: 4px;
+  background: var(--beacon);
 }
 
 .hero h1 {
-  font-size: clamp(1.9rem, 4.2vw, 2.9rem);
-  line-height: 1.04;
-  letter-spacing: -0.035em;
-  font-weight: 700;
+  font-size: clamp(2rem, 4.6vw, 3.1rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  font-weight: 800;
   margin: 0 0 0.75rem;
   text-wrap: balance;
 }
@@ -266,20 +282,19 @@ main > div,
   background: var(--paper-raised);
   border: var(--rule-w) solid var(--rule);
   border-radius: var(--radius);
-  padding: 1.1rem 1.15rem;
-  box-shadow: var(--shadow);
+  padding: 1.15rem 1.2rem;
 }
 
 .section-title {
   font-family: var(--font-data);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.17em;
-  color: var(--ink-soft);
+  letter-spacing: 0.12em;
+  color: var(--ink);
   margin: 0 0 0.9rem;
   padding-bottom: 0.5rem;
-  border-bottom: var(--rule-w) solid var(--rule);
+  border-bottom: 2px solid var(--ink);
 }
 
 .subtle {
@@ -302,7 +317,7 @@ main > div,
   font-family: var(--font-sans);
   color: var(--ink);
   background: var(--paper-raised);
-  border: var(--rule-w) solid var(--rule-strong);
+  border: 2px solid var(--ink);
   border-radius: var(--radius);
   /* Magnifier drawn in CSS so there's no icon dependency. */
   background-image: radial-gradient(
@@ -324,8 +339,8 @@ main > div,
 
 .search-input:focus {
   outline: none;
-  border-color: var(--solar);
-  box-shadow: inset 0 0 0 1px var(--solar);
+  border-color: var(--signal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--signal) 22%, transparent);
 }
 
 .search-results {
@@ -362,7 +377,7 @@ main > div,
 .search-result-item:hover,
 .search-result-item.active {
   background: var(--paper-sunken);
-  box-shadow: inset 3px 0 0 var(--solar);
+  box-shadow: inset 3px 0 0 var(--signal);
 }
 
 /* --- Layout grid -------------------------------------------------------- */
@@ -426,7 +441,7 @@ main > div,
 
 .field-label strong {
   font-weight: 600;
-  color: var(--solar);
+  color: var(--signal);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
 }
@@ -457,8 +472,8 @@ input[type="range"]::-webkit-slider-thumb {
   height: 16px;
   margin-top: -7px;
   border-radius: 0;
-  background: var(--solar);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--solar) 18%, transparent);
+  background: var(--signal);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--signal) 18%, transparent);
 }
 
 input[type="range"]::-moz-range-thumb {
@@ -466,7 +481,7 @@ input[type="range"]::-moz-range-thumb {
   height: 16px;
   border: none;
   border-radius: 0;
-  background: var(--solar);
+  background: var(--signal);
 }
 
 input[type="range"]:disabled {
@@ -484,11 +499,10 @@ input[type="range"]:disabled {
 }
 
 .toggle-btn {
-  padding: 0.42rem 0.85rem;
-  font-family: var(--font-data);
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  padding: 0.45rem 0.9rem;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 500;
   color: var(--ink-soft);
   background: var(--paper-raised);
   border: none;
@@ -506,7 +520,7 @@ input[type="range"]:disabled {
 }
 
 .toggle-btn.active {
-  background: var(--solar);
+  background: var(--ink);
   color: var(--paper);
   font-weight: 600;
 }
@@ -517,23 +531,22 @@ input[type="range"]:disabled {
 }
 
 .btn {
-  padding: 0.6rem 1.1rem;
-  font-family: var(--font-data);
-  font-size: 0.72rem;
+  padding: 0.62rem 1.15rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.11em;
-  color: var(--paper);
-  background: var(--solar);
-  border: var(--rule-w) solid var(--solar);
+  letter-spacing: -0.01em;
+  color: var(--on-signal);
+  background: var(--signal);
+  border: var(--rule-w) solid var(--signal);
   border-radius: var(--radius);
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
 }
 
 .btn:hover {
-  background: var(--solar-deep);
-  border-color: var(--solar-deep);
+  background: var(--signal-deep);
+  border-color: var(--signal-deep);
 }
 
 /* Primary action: calculate / recalculate, with progress shown inside the
@@ -593,7 +606,7 @@ input[type="range"]:disabled {
 }
 
 .progress-ring-fill {
-  stroke: var(--solar);
+  stroke: var(--signal);
   transition: stroke-dashoffset 0.25s linear;
 }
 
@@ -629,7 +642,7 @@ input[type="range"]:disabled {
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 1.5rem;
-  border-left: 3px solid var(--solar);
+  border-left: 3px solid var(--signal);
 }
 
 .boundary-confirm > div:first-child {
@@ -654,11 +667,11 @@ input[type="range"]:disabled {
 }
 
 .badge-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   flex: none;
   border-radius: 50%;
-  background: var(--solar);
+  background: var(--beacon);
 }
 
 .stats-grid {
@@ -677,13 +690,13 @@ input[type="range"]:disabled {
 }
 
 .stat-value {
-  font-family: var(--font-data);
+  font-family: var(--font-sans);
+  font-weight: 700;
   /* Scales down a little so a word-valued tile ("September") sits on one
      line next to the numeric ones. */
-  font-size: clamp(1.05rem, 2.1vw, 1.4rem);
-  font-weight: 500;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
+  line-height: 1.1;
+  letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
   overflow-wrap: anywhere;
@@ -764,17 +777,18 @@ input[type="range"]:disabled {
 /* Status reads by shape as well as colour: viable is a solid block,
    marginal is an outlined one. */
 .status-pill {
-  padding: 0.1rem 0.45rem;
-  font-size: 0.62rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  border-radius: 2px;
+  padding: 0.12rem 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.74rem;
+  font-weight: 500;
+  border-radius: 0;
   border: var(--rule-w) solid transparent;
+  white-space: nowrap;
 }
 
 .status-pill.viable {
   background: var(--viable);
-  color: var(--paper);
+  color: var(--on-viable);
   font-weight: 600;
 }
 
@@ -861,13 +875,13 @@ input[type="range"]:disabled {
 }
 
 .dot-viable {
-  background: var(--viable);
-  border: 1.5px solid var(--viable);
+  background: var(--viable-mark);
+  border: 1.5px solid var(--viable-mark);
 }
 
 .dot-marginal {
   background: transparent;
-  border: 1.5px dashed var(--marginal);
+  border: 1.5px dashed var(--marginal-mark);
 }
 
 /* --- Loading overlay ---------------------------------------------------- */
@@ -892,7 +906,7 @@ input[type="range"]:disabled {
   height: 30px;
   margin-bottom: 0.6rem;
   border: 1.5px solid var(--rule-strong);
-  border-top-color: var(--solar);
+  border-top-color: var(--signal);
   border-radius: 50%;
   animation: sweep 1s linear infinite;
 }
@@ -1020,7 +1034,7 @@ input[type="range"]:disabled {
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.06em;
-  color: var(--solar);
+  color: var(--signal);
   padding-top: 0.15rem;
   font-variant-numeric: tabular-nums;
 }

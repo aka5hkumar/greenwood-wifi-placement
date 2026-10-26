@@ -24,10 +24,11 @@ function prefersDark(): boolean {
   );
 }
 
+// NYC Mesh's own accent palette, so map marks match the rest of the UI.
 const SURVEY = {
-  viable: "#8cbf6a",
-  marginal: "#e3a53f",
-  boundary: "#e3a53f",
+  viable: "#19a974",
+  marginal: "#ff6300",
+  boundary: "#007aff",
 };
 
 // The pipeline emits 8-rose abbreviations ("S", "NW"); spell them out so the
