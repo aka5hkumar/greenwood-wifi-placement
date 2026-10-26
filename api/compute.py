@@ -11,7 +11,7 @@ Request JSON body:
     }
 
 Response JSON (200): the same schema as output/ap_placement.json plus
-boundary/params/stats — see main.run_pipeline()'s return value.
+boundary/params/stats — see cli.run_pipeline()'s return value.
 
 Response JSON (422): {"ok": false, "error": "...", "message": "..."} for
 known, user-fixable failure conditions (area too large, no boundary found,
@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from _respond import respond
 from _ratelimit import allow, same_origin
-from main import (
+from cli import (
     run_pipeline,
     AreaTooLargeError,
     NoBoundaryError,

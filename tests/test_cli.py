@@ -1,4 +1,4 @@
-"""Tests for main.py helpers.
+"""Tests for cli.py helpers.
 
 No network calls — uses a small synthetic polygon.
 Guards against points escaping the boundary and feet/metres unit confusion.
@@ -7,7 +7,7 @@ Guards against points escaping the boundary and feet/metres unit confusion.
 import pytest
 from shapely.geometry import Point, Polygon
 
-from main import generate_grid
+from cli import generate_grid
 from constants import (
     FT_PER_M, AP_HEIGHT_M,
     PANEL_FACING, PANEL_AZIMUTH_DEG, PANEL_TILT_DEG,

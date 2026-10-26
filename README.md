@@ -61,19 +61,19 @@ first visit; any other search runs the full pipeline live (can take up to
 make run
 
 # Or with venv active:
-python3 main.py                                  # Green-Wood, default ranges
-python3 main.py --range-2g 500 --range-5g 260     # override ranges
-python3 main.py --range-6g 200                    # with 6 GHz tri-band AP
-python3 main.py --coverage paths                  # cover walkable paths only
+python3 cli.py                                  # Green-Wood, default ranges
+python3 cli.py --range-2g 500 --range-5g 260     # override ranges
+python3 cli.py --range-6g 200                    # with 6 GHz tri-band AP
+python3 cli.py --coverage paths                  # cover walkable paths only
 
 # Any other location — pass a point inside the site
-python3 main.py --lat 37.7694 --lon -122.4862 --site-name "Golden Gate Park"
+python3 cli.py --lat 37.7694 --lon -122.4862 --site-name "Golden Gate Park"
 
 # Supply an exact boundary instead of the auto-resolved OSM polygon
-python3 main.py --boundary-file my_site.geojson --site-name "My Park"
+python3 cli.py --boundary-file my_site.geojson --site-name "My Park"
 
 # Re-fetch all external data
-python3 main.py --no-cache
+python3 cli.py --no-cache
 ```
 
 All range values are in **feet**.
@@ -140,7 +140,7 @@ regressions immediately.
 ├── tests/                    Unit tests (no network calls)
 ├── plans/                    Planning documents
 ├── public/demo/              Pre-baked Green-Wood result for instant first load
-└── main.py                   CLI entry point + run_pipeline() shared with api/compute.py
+└── cli.py                    CLI entry point + run_pipeline() shared with api/compute.py
 ```
 
 ## Notes

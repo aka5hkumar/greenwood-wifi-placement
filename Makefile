@@ -4,7 +4,7 @@ PYTHON  := python3
 VENV    := venv
 PIP     := $(VENV)/bin/pip
 PYTEST  := $(VENV)/bin/pytest
-MAIN    := $(VENV)/bin/python main.py
+MAIN    := $(VENV)/bin/python cli.py
 
 help:
 	@echo "Usage:"

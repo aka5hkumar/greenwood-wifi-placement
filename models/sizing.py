@@ -2,7 +2,7 @@
 
 Candidate/ILP-test-point counts scale as area / spacing**2, where
 spacing = max(floor, range_m / 10) (see the adaptive-spacing formula shared
-by main.py and api/compute.py). Keeping that ratio bounded keeps the
+by cli.py and api/compute.py). Keeping that ratio bounded keeps the
 coverage-matrix build + ILP solve within a serverless function's time budget
 instead of growing unboundedly with the chosen site's area.
 """

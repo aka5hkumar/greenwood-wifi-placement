@@ -3,11 +3,11 @@ Green-Wood.
 
 Usage
 -----
-    python main.py                                   # Green-Wood defaults
-    python main.py --range-2g 2000 --range-5g 1250
-    python main.py --lat 37.7694 --lon -122.4862      # Golden Gate Park
-    python main.py --range-2g 2000 --range-5g 1250 --range-6g 800 --coverage paths
-    python main.py --help
+    python cli.py                                   # Green-Wood defaults
+    python cli.py --range-2g 2000 --range-5g 1250
+    python cli.py --lat 37.7694 --lon -122.4862      # Golden Gate Park
+    python cli.py --range-2g 2000 --range-5g 1250 --range-6g 800 --coverage paths
+    python cli.py --help
 
 The core pipeline (run_pipeline()) is shared with the Vercel API route in
 api/compute.py — this module is just the CLI wrapper that adds the
@@ -550,7 +550,7 @@ def run_pipeline(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="main.py",
+        prog="cli.py",
         description="Outputs optimal solar-powered WiFi AP placement for any park, cemetery, or campus.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
@@ -626,7 +626,7 @@ def main():
     if args.boundary_file:
         boundary_override = _load_fixture_polygon(args.boundary_file)
     elif is_default_site and os.path.exists(GREENWOOD_FIXTURE):
-        # Zero-config `python main.py` keeps working without an Overpass
+        # Zero-config `python cli.py` keeps working without an Overpass
         # boundary search — this is the same crude 6-vertex polygon the
         # tool has always shipped with for Green-Wood.
         boundary_override = _load_fixture_polygon(GREENWOOD_FIXTURE)

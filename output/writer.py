@@ -80,7 +80,7 @@ def write_summary(
     """
     Write a Markdown summary.
 
-    aps             : list of AP dicts produced by main.py (already US-unit annotated)
+    aps             : list of AP dicts produced by cli.py (already US-unit annotated)
     coverage_matrix : bool[n_selected, n_test_points]
     n_test_points   : total test points (covered + uncovered)
     rated_range_ft  : primary (2.4 GHz) rated range in feet, for area comparisons
