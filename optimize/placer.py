@@ -18,16 +18,15 @@ from constants import MARGINAL_PENALTY
 
 
 # ---------------------------------------------------------------------------
-# Subprocess worker — runs the actual HiGHS call in a child process
+# Core solve — shared by the in-process (serverless) and subprocess (CLI) paths
 # ---------------------------------------------------------------------------
 
-def _milp_worker(queue, c, data, indices, indptr, shape, n_candidates):
-    """Entry point for the solver subprocess."""
+def _solve(c, data, indices, indptr, shape, n_candidates):
     A = csc_matrix((data, indices, indptr), shape=shape)
     n_threads = os.cpu_count() or 1
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "Unrecognized options", RuntimeWarning)
-        result = milp(
+        return milp(
             c,
             constraints=LinearConstraint(A, lb=1.0, ub=np.inf),
             integrality=np.ones(n_candidates, dtype=np.int8),
@@ -39,7 +38,11 @@ def _milp_worker(queue, c, data, indices, indptr, shape, n_candidates):
                 "presolve": True,
             },
         )
-    queue.put(result)
+
+
+def _milp_worker(queue, c, data, indices, indptr, shape, n_candidates):
+    """Entry point for the solver subprocess (CLI path only — lets Ctrl+C kill it)."""
+    queue.put(_solve(c, data, indices, indptr, shape, n_candidates))
 
 
 # ---------------------------------------------------------------------------
@@ -49,6 +52,7 @@ def _milp_worker(queue, c, data, indices, indptr, shape, n_candidates):
 def optimize_placement(
     coverage_matrix: np.ndarray,
     solar_statuses: list[str],
+    parallel: bool = True,
 ) -> list[int]:
     """
     Minimise the weighted number of APs subject to covering every test point.
@@ -59,6 +63,11 @@ def optimize_placement(
         True where candidate i covers test point j.
     solar_statuses  : list of 'viable' | 'marginal' per candidate
         (unviable candidates should already be filtered out)
+    parallel : bool
+        If True (CLI default), solve in a forked subprocess so Ctrl+C aborts
+        it immediately. If False (serverless), solve in-process — there's no
+        interactive Ctrl+C to honour, and spawning a subprocess adds overhead
+        a function invocation may not have headroom for.
 
     Returns
     -------
@@ -97,24 +106,27 @@ def optimize_placement(
     print(f"  Est. solve : {est_lo}–{est_hi}s  "
           f"({n_threads} threads, IPM)  Press Ctrl+C to abort", flush=True)
 
-    # Run HiGHS in a subprocess so Ctrl+C terminates it immediately.
-    ctx = mp.get_context("fork")
-    queue = ctx.Queue()
-    proc = ctx.Process(
-        target=_milp_worker,
-        args=(queue, c, A.data, A.indices, A.indptr, A.shape, n_candidates),
-        daemon=True,
-    )
-    proc.start()
     t1 = time.time()
-    try:
-        result = queue.get()   # blocks until the subprocess puts a result
-    except KeyboardInterrupt:
-        proc.terminate()
+    if parallel:
+        # Run HiGHS in a subprocess so Ctrl+C terminates it immediately.
+        ctx = mp.get_context("fork")
+        queue = ctx.Queue()
+        proc = ctx.Process(
+            target=_milp_worker,
+            args=(queue, c, A.data, A.indices, A.indptr, A.shape, n_candidates),
+            daemon=True,
+        )
+        proc.start()
+        try:
+            result = queue.get()   # blocks until the subprocess puts a result
+        except KeyboardInterrupt:
+            proc.terminate()
+            proc.join()
+            print("\nInterrupted.")
+            raise SystemExit(1)
         proc.join()
-        print("\nInterrupted.")
-        raise SystemExit(1)
-    proc.join()
+    else:
+        result = _solve(c, A.data, A.indices, A.indptr, A.shape, n_candidates)
 
     elapsed = time.time() - t1
 

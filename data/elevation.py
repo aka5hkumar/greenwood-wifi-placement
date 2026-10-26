@@ -1,42 +1,82 @@
-"""Fetch bare-earth elevation raster from USGS 3DEP for Green-Wood Cemetery."""
+"""Fetch a bare-earth elevation grid via a free, keyless point-query API.
 
-import io
+No GDAL/rasterio dependency — Open-Topo-Data's bulk endpoint (100 points per
+request, no API key) is queried over the same lat/lon grid schema the old
+USGS-raster path produced, so downstream code (models/terrain.py) needs no
+changes. Point OPENTOPODATA_URL at a self-hosted instance
+(https://www.opentopodata.org/#host-your-own) for faster/higher-volume use.
+"""
+
 import json
 import os
+import time
 
 import numpy as np
 import requests
-import rasterio
-from rasterio.io import MemoryFile
 from shapely.geometry import Polygon
 
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
-ELEV_CACHE = os.path.join(CACHE_DIR, "elevation.npy")
-TRANSFORM_CACHE = os.path.join(CACHE_DIR, "elevation_transform.json")
 
-USGS_URL = (
-    "https://elevation.nationalmap.gov/arcgis/rest/services"
-    "/3DEPElevation/ImageServer/exportImage"
+OPENTOPODATA_URL = os.environ.get(
+    "OPENTOPODATA_URL", "https://api.opentopodata.org/v1/aster30m"
 )
-RESOLUTION_M = 5.0
+_BATCH_SIZE = 100
+_REQUEST_DELAY_S = 1.0   # respect the public demo server's ~1 req/s rate limit
+
+# Coarser than a typical USGS DEM — keeps point-query counts serverless-
+# friendly while still resolving tree/building-scale terrain features at
+# park/cemetery scale.
+RESOLUTION_M = 15.0
 BBOX_PAD_DEG = 0.002
 
 
+def _elevation_cache_paths(cache_key: str) -> tuple[str, str]:
+    return (
+        os.path.join(CACHE_DIR, f"elevation_{cache_key}.npy"),
+        os.path.join(CACHE_DIR, f"elevation_transform_{cache_key}.json"),
+    )
+
+
+def _query_elevations(points: list[tuple[float, float]]) -> list[float]:
+    """points: list of (lat, lon). Returns elevation in metres (NaN on failure)."""
+    out: list[float] = []
+    for i in range(0, len(points), _BATCH_SIZE):
+        batch = points[i : i + _BATCH_SIZE]
+        locations = "|".join(f"{lat},{lon}" for lat, lon in batch)
+        try:
+            resp = requests.get(
+                OPENTOPODATA_URL, params={"locations": locations}, timeout=30
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            for r in data.get("results", []):
+                e = r.get("elevation")
+                out.append(float(e) if e is not None else float("nan"))
+        except Exception as exc:
+            print(f"  Elevation batch {i // _BATCH_SIZE} failed ({exc}), using fallback.")
+            out.extend([float("nan")] * len(batch))
+        if i + _BATCH_SIZE < len(points):
+            time.sleep(_REQUEST_DELAY_S)
+    return out
+
+
 def fetch_elevation_raster(
-    boundary: Polygon, no_cache: bool = False
+    boundary: Polygon, no_cache: bool = False, cache_key: str = "default"
 ) -> tuple[np.ndarray, dict]:
     """
-    Download a bare-earth elevation raster from USGS 3DEP.
+    Build a bare-earth elevation grid by point-querying a free elevation API.
 
-    Returns (elevation_m, transform) where transform describes the grid origin
-    and cell size in degrees so any lat/lon can be mapped to a grid index.
+    Returns (elevation_m, transform) with the same schema the previous
+    USGS-raster path produced: transform describes the grid origin/cell size
+    in degrees so any lat/lon maps to a (row, col) index via latlon_to_grid.
     """
     os.makedirs(CACHE_DIR, exist_ok=True)
+    elev_cache, transform_cache = _elevation_cache_paths(cache_key)
 
-    if not no_cache and os.path.exists(ELEV_CACHE) and os.path.exists(TRANSFORM_CACHE):
+    if not no_cache and os.path.exists(elev_cache) and os.path.exists(transform_cache):
         print("Loading elevation from cache...")
-        elev = np.load(ELEV_CACHE)
-        with open(TRANSFORM_CACHE) as f:
+        elev = np.load(elev_cache)
+        with open(transform_cache) as f:
             transform = json.load(f)
         return elev, transform
 
@@ -50,29 +90,8 @@ def fetch_elevation_raster(
     lat_m_per_deg = 111_320.0
     lon_m_per_deg = 111_320.0 * np.cos(np.radians(mid_lat))
 
-    nrows = max(50, int((maxy - miny) * lat_m_per_deg / RESOLUTION_M))
-    ncols = max(50, int((maxx - minx) * lon_m_per_deg / RESOLUTION_M))
-
-    params = {
-        "bbox": f"{minx},{miny},{maxx},{maxy}",
-        "bboxSR": "4326",
-        "size": f"{ncols},{nrows}",
-        "imageSR": "4326",
-        "format": "tiff",
-        "pixelType": "F32",
-        "noData": "-9999",
-        "f": "image",
-    }
-
-    print(f"Downloading elevation raster ({ncols}×{nrows} px at {RESOLUTION_M:.0f} m)...")
-    resp = requests.get(USGS_URL, params=params, timeout=120)
-    resp.raise_for_status()
-
-    with MemoryFile(resp.content) as memfile:
-        with memfile.open() as ds:
-            elev = ds.read(1).astype(np.float32)
-
-    elev[elev < -100] = np.nan
+    nrows = max(20, int((maxy - miny) * lat_m_per_deg / RESOLUTION_M))
+    ncols = max(20, int((maxx - minx) * lon_m_per_deg / RESOLUTION_M))
 
     transform = {
         "origin_lon": minx,
@@ -84,11 +103,29 @@ def fetch_elevation_raster(
         "resolution_m": RESOLUTION_M,
     }
 
-    np.save(ELEV_CACHE, elev)
-    with open(TRANSFORM_CACHE, "w") as f:
+    print(
+        f"Querying elevation grid ({ncols}×{nrows} px at {RESOLUTION_M:.0f} m, "
+        f"{nrows * ncols:,} points)..."
+    )
+
+    lats = maxy + np.arange(nrows) * transform["cell_lat"]
+    lons = minx + np.arange(ncols) * transform["cell_lon"]
+    points = [(lat, lon) for lat in lats for lon in lons]
+
+    elevations = _query_elevations(points)
+    elev = np.array(elevations, dtype=np.float32).reshape(nrows, ncols)
+
+    # Fill any failed/no-data points from the grid mean so NaNs never reach
+    # the LOS raycasting (a flat local fallback is safer than propagating NaN).
+    if np.isnan(elev).any():
+        valid_mean = float(np.nanmean(elev)) if not np.all(np.isnan(elev)) else 0.0
+        elev = np.nan_to_num(elev, nan=valid_mean)
+
+    np.save(elev_cache, elev)
+    with open(transform_cache, "w") as f:
         json.dump(transform, f, indent=2)
 
-    print(f"Elevation cached: min={np.nanmin(elev):.1f} m, max={np.nanmax(elev):.1f} m")
+    print(f"Elevation grid: min={elev.min():.1f} m, max={elev.max():.1f} m")
     return elev, transform
 
 

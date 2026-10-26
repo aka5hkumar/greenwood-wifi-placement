@@ -5,11 +5,20 @@ swapped in the Overpass bbox) so that porting to a new site doesn't silently
 query the wrong area.
 """
 
+import json
+import os
+
 import pytest
 from shapely.geometry import Polygon
 
-from data.osm import _bbox, _FALLBACK_POLYGON
+from data.osm import _bbox
 from constants import CEMETERY_BBOX
+
+_FIXTURE_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "data", "fixtures", "greenwood_boundary.geojson"
+)
+with open(_FIXTURE_PATH) as _f:
+    _GREENWOOD_POLYGON = json.load(_f)["geometry"]["coordinates"][0]
 
 
 def _make_polygon(south, west, north, east):
@@ -48,7 +57,7 @@ class TestBboxHelper:
         assert e == pytest.approx(40.0)
 
     def test_greenwood_bbox_is_in_brooklyn(self):
-        p = Polygon(_FALLBACK_POLYGON)
+        p = Polygon(_GREENWOOD_POLYGON)
         s, w, n, e = _bbox(p)
         assert 40.6 < s < 40.7, "Green-Wood south edge should be ~40.64°N"
         assert -74.1 < w < -73.9, "Green-Wood west edge should be ~-74.00°W"
@@ -56,7 +65,7 @@ class TestBboxHelper:
         assert -74.1 < e < -73.9, "Green-Wood east edge should be ~-73.98°W"
 
     def test_polygon_fallback_is_valid(self):
-        p = Polygon(_FALLBACK_POLYGON)
+        p = Polygon(_GREENWOOD_POLYGON)
         assert p.is_valid
         assert not p.is_empty
         # Area should be roughly the cemetery (~190 ha = ~1.9 km²).
@@ -65,7 +74,7 @@ class TestBboxHelper:
 
     def test_bbox_constants_match_polygon(self):
         s_bbox, w_bbox, n_bbox, e_bbox = CEMETERY_BBOX
-        p = Polygon(_FALLBACK_POLYGON)
+        p = Polygon(_GREENWOOD_POLYGON)
         s_poly, w_poly, n_poly, e_poly = _bbox(p)
         assert abs(s_bbox - s_poly) < 0.001
         assert abs(w_bbox - w_poly) < 0.001

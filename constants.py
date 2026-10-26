@@ -70,17 +70,28 @@ SHADE_RADIUS_M = 50.0           # Radius used for solid-angle shade fraction che
 MARGINAL_PENALTY = 1.5     # Weight multiplier for marginal-solar candidates
 
 # ---------------------------------------------------------------------------
-# Site (Green-Wood Cemetery, Brooklyn NY)
+# Default site (Green-Wood Cemetery, Brooklyn NY) — just the starting point
+# for the demo. Any lat/lon can be passed at runtime (CLI flags or the API);
+# the boundary is resolved generically via data.osm.fetch_boundary.
 # ---------------------------------------------------------------------------
-# OSM relation ID — fetched live from Overpass each run (cached after first fetch).
-CEMETERY_RELATION_ID = 1370699
+DEFAULT_SITE_NAME = "Green-Wood Cemetery"
+DEFAULT_LAT = 40.651
+DEFAULT_LON = -73.994
 
 # Bounding box (south, west, north, east) — used by tests; the live boundary
 # polygon is what's actually used for grid clipping and coverage reporting.
 CEMETERY_BBOX = (40.644250, -74.002056, 40.659556, -73.980500)
 
-# If you want to override the OSM-fetched boundary (e.g. to refine the perimeter
-# or carve out a sub-area), populate this list with (lon, lat) tuples in order.
-# When non-empty (≥ 3 points) it replaces the OSM boundary entirely. Leave empty
-# to use the live OSM polygon.
+# If you want to override the resolved boundary (e.g. to refine the perimeter,
+# carve out a sub-area, or supply a user-drawn polygon from the web UI),
+# populate this list with (lon, lat) tuples in order. When non-empty
+# (≥ 3 points) it replaces the resolved boundary entirely.
 BOUNDARY_OVERRIDE_POLYGON: list[tuple[float, float]] = []
+
+# Area cap (m²) per metre of candidate-grid spacing, squared — keeps the
+# candidate/ILP-test-point counts (which scale as area / spacing²) bounded
+# for the live serverless compute path. See models/sizing.py. Calibrated
+# against Green-Wood's real OSM boundary (~483 acres, spacing 61 m at its
+# default 2000 ft range → area/spacing² ≈ 526) plus headroom, so the demo's
+# own default site comfortably passes.
+MAX_AREA_PER_SPACING2 = 700

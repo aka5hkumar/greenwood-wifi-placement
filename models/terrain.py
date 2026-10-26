@@ -1,9 +1,7 @@
 """Digital Surface Model construction and vectorised line-of-sight calculations."""
 
-import warnings
 import numpy as np
 import scipy.ndimage
-import geopandas as gpd
 from pyproj import Transformer
 from shapely.geometry import Point
 
@@ -13,17 +11,44 @@ from constants import (
     TREE_CANOPY_THRESHOLD_M, SHADE_RADIUS_M,
 )
 
-_to_utm = Transformer.from_crs("EPSG:4326", "EPSG:32618", always_xy=True)
-_to_wgs84 = Transformer.from_crs("EPSG:32618", "EPSG:4326", always_xy=True)
+_current_epsg = 32618
+_to_utm = Transformer.from_crs("EPSG:4326", f"EPSG:{_current_epsg}", always_xy=True)
+_to_wgs84 = Transformer.from_crs(f"EPSG:{_current_epsg}", "EPSG:4326", always_xy=True)
+
+
+def utm_epsg_for(lon: float, lat: float) -> int:
+    """UTM EPSG code for the zone containing (lon, lat)."""
+    zone = int((lon + 180) // 6) + 1
+    return (32600 if lat >= 0 else 32700) + zone
+
+
+def configure_projection(lon: float, lat: float) -> int:
+    """(Re)build the module's UTM transformers for the zone containing this point.
+
+    Call once per site, before any to_utm/to_wgs84/generate_grid calls — the
+    old code hardcoded UTM zone 18N (Green-Wood); this computes the correct
+    zone for any location so the tool works anywhere, not just NYC.
+    """
+    global _current_epsg, _to_utm, _to_wgs84
+    epsg = utm_epsg_for(lon, lat)
+    if epsg != _current_epsg:
+        _current_epsg = epsg
+        _to_utm = Transformer.from_crs("EPSG:4326", f"EPSG:{epsg}", always_xy=True)
+        _to_wgs84 = Transformer.from_crs(f"EPSG:{epsg}", "EPSG:4326", always_xy=True)
+    return epsg
+
+
+def current_epsg() -> int:
+    return _current_epsg
 
 
 def to_utm(lon, lat):
-    """Convert (lon, lat) → (easting, northing) in UTM zone 18N (metres)."""
+    """Convert (lon, lat) → (easting, northing) in the configured UTM zone (metres)."""
     return _to_utm.transform(lon, lat)
 
 
 def to_wgs84(easting, northing):
-    """Convert (easting, northing) UTM 18N → (lon, lat)."""
+    """Convert (easting, northing) in the configured UTM zone → (lon, lat)."""
     return _to_wgs84.transform(easting, northing)
 
 
@@ -32,33 +57,32 @@ class TerrainModel:
         self,
         elevation: np.ndarray,
         transform: dict,
-        trees_gdf: gpd.GeoDataFrame,
-        buildings_gdf: gpd.GeoDataFrame,
+        trees: list[dict] | None,
+        buildings: list[dict] | None,
     ):
         self.elev = elevation.astype(np.float32)
         self.transform = transform
-        self.trees_gdf = trees_gdf if trees_gdf is not None else gpd.GeoDataFrame()
-        self.dsm = self._build_dsm(trees_gdf)
-        self.building_mask = self._rasterise_buildings(buildings_gdf)
+        self.trees = trees or []
+        self.dsm = self._build_dsm(self.trees)
+        self.building_mask = self._rasterise_buildings(buildings or [])
 
     # ------------------------------------------------------------------
     # Construction helpers
     # ------------------------------------------------------------------
 
-    def _build_dsm(self, trees_gdf: gpd.GeoDataFrame) -> np.ndarray:
+    def _build_dsm(self, trees: list[dict]) -> np.ndarray:
         """Paint tree-canopy heights onto the bare-earth raster to form a DSM."""
         dsm = self.elev.copy()
-        if trees_gdf is None or trees_gdf.empty:
+        if not trees:
             return dsm
 
         nrows, ncols = dsm.shape
-        res_m = self.transform["resolution_m"]
         cell_lat_m = abs(self.transform["cell_lat"]) * 111_320.0
         mid_lat = self.transform["origin_lat"] + nrows / 2 * self.transform["cell_lat"]
         cell_lon_m = self.transform["cell_lon"] * 111_320.0 * np.cos(np.radians(mid_lat))
 
-        for _, row in trees_gdf.iterrows():
-            pt = row.geometry
+        for row in trees:
+            pt = row["geometry"]
             h = row.get("height_m") or DEFAULT_TREE_HEIGHT_M
             crown_r = float(row.get("canopy_radius_m", 3.0) or 3.0)
 
@@ -76,15 +100,15 @@ class TerrainModel:
 
         return dsm
 
-    def _rasterise_buildings(self, buildings_gdf: gpd.GeoDataFrame) -> np.ndarray:
+    def _rasterise_buildings(self, buildings: list[dict]) -> np.ndarray:
         """Burn building footprints into a boolean mask for fast LOS blocking."""
         mask = np.zeros(self.elev.shape, dtype=bool)
-        if buildings_gdf is None or buildings_gdf.empty:
+        if not buildings:
             return mask
 
         nrows, ncols = self.elev.shape
-        for _, row in buildings_gdf.iterrows():
-            poly = row.geometry
+        for row in buildings:
+            poly = row["geometry"]
             minx, miny, maxx, maxy = poly.bounds
             r_min, c_min = latlon_to_grid(maxy, minx, self.transform)
             r_max, c_max = latlon_to_grid(miny, maxx, self.transform)
@@ -124,25 +148,23 @@ class TerrainModel:
         matching its bearing from the AP. Values are clipped to [0, 1].
         """
         buckets = np.zeros(n_buckets, dtype=np.float64)
-        if self.trees_gdf is None or self.trees_gdf.empty:
+        if not self.trees:
             return buckets
 
         pt = Point(lon, lat)
         rad_deg = radius_m / 111_320.0
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", UserWarning)
-            nearby = self.trees_gdf[self.trees_gdf.geometry.distance(pt) < rad_deg]
-        if nearby.empty:
+        nearby = [t for t in self.trees if t["geometry"].distance(pt) < rad_deg]
+        if not nearby:
             return buckets
 
         m_per_deg_lat = 111_320.0
         m_per_deg_lon = 111_320.0 * np.cos(np.radians(lat))
         bucket_width = 360.0 / n_buckets
 
-        for _, row in nearby.iterrows():
+        for row in nearby:
             r = float(row.get("canopy_radius_m") or 6.0)
-            dlat = (row.geometry.y - lat) * m_per_deg_lat
-            dlon = (row.geometry.x - lon) * m_per_deg_lon
+            dlat = (row["geometry"].y - lat) * m_per_deg_lat
+            dlon = (row["geometry"].x - lon) * m_per_deg_lon
             d2 = dlat * dlat + dlon * dlon
             if d2 == 0.0:
                 # Tree directly overhead — spread contribution evenly across all buckets
@@ -164,24 +186,22 @@ class TerrainModel:
         naturally with distance.  Summed contributions are clipped to 1.0.
         radius_m=50 covers trees that cast meaningful shade at ~15° sun elevation.
         """
-        if self.trees_gdf is None or self.trees_gdf.empty:
+        if not self.trees:
             return 0.0
 
         pt = Point(lon, lat)
         rad_deg = radius_m / 111_320.0
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", UserWarning)
-            nearby = self.trees_gdf[self.trees_gdf.geometry.distance(pt) < rad_deg]
-        if nearby.empty:
+        nearby = [t for t in self.trees if t["geometry"].distance(pt) < rad_deg]
+        if not nearby:
             return 0.0
 
         m_per_deg_lat = 111_320.0
         m_per_deg_lon = 111_320.0 * np.cos(np.radians(lat))
         shade = 0.0
-        for _, row in nearby.iterrows():
+        for row in nearby:
             r = float(row.get("canopy_radius_m") or 6.0)
-            dlat = (row.geometry.y - lat) * m_per_deg_lat
-            dlon = (row.geometry.x - lon) * m_per_deg_lon
+            dlat = (row["geometry"].y - lat) * m_per_deg_lat
+            dlon = (row["geometry"].x - lon) * m_per_deg_lon
             d2 = dlat ** 2 + dlon ** 2
             shade += r * r / (r * r + d2)
         return min(shade, 1.0)

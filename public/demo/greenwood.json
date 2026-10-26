@@ -1,0 +1,873 @@
+{
+  "ok": true,
+  "site_name": "Green-Wood Cemetery",
+  "boundary_coords": [
+    [
+      -73.988389,
+      40.659194
+    ],
+    [
+      -73.995194,
+      40.659556
+    ],
+    [
+      -74.002056,
+      40.652944
+    ],
+    [
+      -73.989083,
+      40.64425
+    ],
+    [
+      -73.9805,
+      40.64775
+    ],
+    [
+      -73.981917,
+      40.655278
+    ],
+    [
+      -73.988389,
+      40.659194
+    ]
+  ],
+  "aps": [
+    {
+      "name": "GW-AP-01",
+      "lat": 40.654778,
+      "lon": -73.999865,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 31.7,
+      "overlap_pct": 95.2,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-02",
+      "lat": 40.651477,
+      "lon": -73.999194,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 22.7,
+      "overlap_pct": 87.9,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-03",
+      "lat": 40.654216,
+      "lon": -73.998432,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 15.5,
+      "overlap_pct": 85.0,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-04",
+      "lat": 40.655308,
+      "lon": -73.997694,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 7.7,
+      "overlap_pct": 98.0,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-05",
+      "lat": 40.655302,
+      "lon": -73.996973,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 16.1,
+      "overlap_pct": 84.0,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-06",
+      "lat": 40.657498,
+      "lon": -73.99694,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 14.8,
+      "overlap_pct": 93.7,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-07",
+      "lat": 40.649805,
+      "lon": -73.996335,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 14.6,
+      "overlap_pct": 91.8,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-08",
+      "lat": 40.650903,
+      "lon": -73.996318,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 6.0,
+      "overlap_pct": 83.9,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-09",
+      "lat": 40.6487,
+      "lon": -73.99563,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 4.0,
+      "overlap_pct": 89.5,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-10",
+      "lat": 40.653093,
+      "lon": -73.995564,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 12.7,
+      "overlap_pct": 85.1,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-11",
+      "lat": 40.658584,
+      "lon": -73.995482,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 13.1,
+      "overlap_pct": 91.9,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-12",
+      "lat": 40.648694,
+      "lon": -73.994909,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 13.1,
+      "overlap_pct": 84.8,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-13",
+      "lat": 40.658022,
+      "lon": -73.994048,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 198.8,
+      "shade_pct": 17.9,
+      "coverage_efficiency_pct": 19.4,
+      "overlap_pct": 92.2,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-14",
+      "lat": 40.654722,
+      "lon": -73.993377,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 17.0,
+      "overlap_pct": 92.3,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-15",
+      "lat": 40.649224,
+      "lon": -73.992738,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 34.5,
+      "overlap_pct": 89.9,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-16",
+      "lat": 40.652513,
+      "lon": -73.991968,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 228.6,
+      "shade_pct": 5.6,
+      "coverage_efficiency_pct": 2.9,
+      "overlap_pct": 85.7,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-17",
+      "lat": 40.658553,
+      "lon": -73.991877,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 231.0,
+      "shade_pct": 4.6,
+      "coverage_efficiency_pct": 14.6,
+      "overlap_pct": 84.0,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.848
+    },
+    {
+      "name": "GW-AP-18",
+      "lat": 40.650859,
+      "lon": -73.991272,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 16.3,
+      "overlap_pct": 92.2,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-19",
+      "lat": 40.65635,
+      "lon": -73.991189,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 17.0,
+      "overlap_pct": 84.1,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-20",
+      "lat": 40.658546,
+      "lon": -73.991156,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 0.9,
+      "overlap_pct": 26.4,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-21",
+      "lat": 40.654147,
+      "lon": -73.990501,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 13.3,
+      "overlap_pct": 75.4,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-22",
+      "lat": 40.65854,
+      "lon": -73.990435,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 0.9,
+      "overlap_pct": 44.6,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-23",
+      "lat": 40.659089,
+      "lon": -73.990427,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 0.5,
+      "overlap_pct": 48.1,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-24",
+      "lat": 40.658534,
+      "lon": -73.989714,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 0.6,
+      "overlap_pct": 60.6,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-25",
+      "lat": 40.659083,
+      "lon": -73.989706,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 0.9,
+      "overlap_pct": 40.4,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-26",
+      "lat": 40.645349,
+      "lon": -73.989192,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 218.3,
+      "shade_pct": 9.8,
+      "coverage_efficiency_pct": 30.2,
+      "overlap_pct": 85.6,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.84
+    },
+    {
+      "name": "GW-AP-27",
+      "lat": 40.654128,
+      "lon": -73.988338,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 229.0,
+      "shade_pct": 5.4,
+      "coverage_efficiency_pct": 11.6,
+      "overlap_pct": 78.3,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.848
+    },
+    {
+      "name": "GW-AP-28",
+      "lat": 40.656874,
+      "lon": -73.988297,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 229.7,
+      "shade_pct": 5.1,
+      "coverage_efficiency_pct": 6.7,
+      "overlap_pct": 92.9,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-29",
+      "lat": 40.648631,
+      "lon": -73.9877,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 225.7,
+      "shade_pct": 6.8,
+      "coverage_efficiency_pct": 26.7,
+      "overlap_pct": 92.6,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.846
+    },
+    {
+      "name": "GW-AP-30",
+      "lat": 40.654671,
+      "lon": -73.987609,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 235.5,
+      "shade_pct": 2.7,
+      "coverage_efficiency_pct": 4.1,
+      "overlap_pct": 80.6,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-31",
+      "lat": 40.656868,
+      "lon": -73.987576,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 207.0,
+      "shade_pct": 14.5,
+      "coverage_efficiency_pct": 0.7,
+      "overlap_pct": 61.2,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.848
+    },
+    {
+      "name": "GW-AP-32",
+      "lat": 40.657966,
+      "lon": -73.987559,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 215.9,
+      "shade_pct": 10.8,
+      "coverage_efficiency_pct": 3.2,
+      "overlap_pct": 63.6,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-33",
+      "lat": 40.658515,
+      "lon": -73.987551,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 237.7,
+      "shade_pct": 1.8,
+      "coverage_efficiency_pct": 0.9,
+      "overlap_pct": 53.1,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.846
+    },
+    {
+      "name": "GW-AP-34",
+      "lat": 40.645879,
+      "lon": -73.987021,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 27.6,
+      "overlap_pct": 86.9,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-35",
+      "lat": 40.657404,
+      "lon": -73.986125,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 236.0,
+      "shade_pct": 2.5,
+      "coverage_efficiency_pct": 1.7,
+      "overlap_pct": 49.5,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-36",
+      "lat": 40.651907,
+      "lon": -73.985488,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 233.8,
+      "shade_pct": 3.4,
+      "coverage_efficiency_pct": 17.2,
+      "overlap_pct": 94.5,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-37",
+      "lat": 40.654652,
+      "lon": -73.985446,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 13.2,
+      "overlap_pct": 69.4,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-38",
+      "lat": 40.655201,
+      "lon": -73.985438,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 229.9,
+      "shade_pct": 5.1,
+      "coverage_efficiency_pct": 4.9,
+      "overlap_pct": 85.2,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-39",
+      "lat": 40.652449,
+      "lon": -73.984758,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 236.9,
+      "shade_pct": 2.2,
+      "coverage_efficiency_pct": 13.4,
+      "overlap_pct": 95.8,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.848
+    },
+    {
+      "name": "GW-AP-40",
+      "lat": 40.656293,
+      "lon": -73.9847,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 238.4,
+      "shade_pct": 1.5,
+      "coverage_efficiency_pct": 8.1,
+      "overlap_pct": 51.8,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-41",
+      "lat": 40.656842,
+      "lon": -73.984692,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 203.8,
+      "shade_pct": 15.8,
+      "coverage_efficiency_pct": 1.4,
+      "overlap_pct": 23.0,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.843
+    },
+    {
+      "name": "GW-AP-42",
+      "lat": 40.649691,
+      "lon": -73.983358,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 242.1,
+      "shade_pct": 0.0,
+      "coverage_efficiency_pct": 37.0,
+      "overlap_pct": 80.7,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-43",
+      "lat": 40.651339,
+      "lon": -73.983333,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 227.9,
+      "shade_pct": 5.9,
+      "coverage_efficiency_pct": 15.1,
+      "overlap_pct": 90.3,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.849
+    },
+    {
+      "name": "GW-AP-44",
+      "lat": 40.654627,
+      "lon": -73.982562,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 235.4,
+      "shade_pct": 2.8,
+      "coverage_efficiency_pct": 13.2,
+      "overlap_pct": 66.1,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.846
+    },
+    {
+      "name": "GW-AP-45",
+      "lat": 40.651875,
+      "lon": -73.981883,
+      "bands": [
+        "2.4GHz",
+        "5GHz"
+      ],
+      "solar_status": "marginal",
+      "harvest_wh": 230.8,
+      "shade_pct": 4.7,
+      "coverage_efficiency_pct": 8.3,
+      "overlap_pct": 77.7,
+      "panel_facing": "S",
+      "panel_azimuth_deg": 180.0,
+      "panel_tilt_deg": 40.0,
+      "panel_sky_score": 0.847
+    }
+  ],
+  "params_used": {
+    "lat": 40.651,
+    "lon": -73.994,
+    "range_2g_ft": 2000.0,
+    "range_5g_ft": 1250.0,
+    "range_6g_ft": null,
+    "coverage": "full"
+  },
+  "stats": {
+    "design_month": "October",
+    "design_ghi_wh_m2_day": 3000,
+    "shoulder_months": [
+      "January",
+      "February",
+      "November",
+      "December"
+    ],
+    "area_acres": 478.0,
+    "candidate_count": null,
+    "viable_candidate_count": null,
+    "report_point_count": 19540,
+    "total_covered": 17431,
+    "coverage_pct": 89.2,
+    "ap_count": 45
+  },
+  "cached": true,
+  "note": "Pre-computed result shown instantly on load. Search for a new location to run the pipeline live."
+}

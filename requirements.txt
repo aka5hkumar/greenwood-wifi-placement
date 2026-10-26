@@ -1,10 +1,7 @@
-geopandas
 shapely
 overpy
-pulp
 requests
 numpy
 scipy
-rasterio
 pyproj
 simplekml

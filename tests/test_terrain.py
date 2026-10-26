@@ -7,7 +7,6 @@ or missing OSM tree/building data.
 
 import numpy as np
 import pytest
-import geopandas as gpd
 from shapely.geometry import Point
 
 from models.terrain import TerrainModel
@@ -26,16 +25,8 @@ _TRANSFORM = {
 _FLAT_ELEV = np.full((_NROWS, _NCOLS), 10.0, dtype=np.float32)
 
 
-def _empty_gdf(columns):
-    return gpd.GeoDataFrame(columns=columns, crs="EPSG:4326")
-
-
-def _make_model(trees_gdf=None, buildings_gdf=None):
-    if trees_gdf is None:
-        trees_gdf = _empty_gdf(["geometry", "canopy_radius_m", "height_m"])
-    if buildings_gdf is None:
-        buildings_gdf = _empty_gdf(["geometry"])
-    return TerrainModel(_FLAT_ELEV.copy(), _TRANSFORM, trees_gdf, buildings_gdf)
+def _make_model(trees=None, buildings=None):
+    return TerrainModel(_FLAT_ELEV.copy(), _TRANSFORM, trees or [], buildings or [])
 
 
 class TestShadeFunction:
@@ -46,11 +37,8 @@ class TestShadeFunction:
 
     def test_shade_between_zero_and_one(self):
         # Even with a tree directly overhead the result must stay in [0, 1]
-        trees = gpd.GeoDataFrame(
-            [{"geometry": Point(-73.995, 40.655), "canopy_radius_m": 5.0, "height_m": 15.0}],
-            crs="EPSG:4326",
-        )
-        model = _make_model(trees_gdf=trees)
+        trees = [{"geometry": Point(-73.995, 40.655), "canopy_radius_m": 5.0, "height_m": 15.0}]
+        model = _make_model(trees=trees)
         shade = model.shade_fraction(40.655, -73.995)
         assert 0.0 <= shade <= 1.0
 
@@ -72,22 +60,16 @@ class TestDirectionalShade:
         # Tree ~25 m due north of the AP (well inside the 50 m shade radius).
         ap_lat, ap_lon = 40.655, -73.995
         north_lat = ap_lat + 25.0 / 111_320.0
-        trees = gpd.GeoDataFrame(
-            [{"geometry": Point(ap_lon, north_lat), "canopy_radius_m": 6.0, "height_m": 15.0}],
-            crs="EPSG:4326",
-        )
-        model = _make_model(trees_gdf=trees)
+        trees = [{"geometry": Point(ap_lon, north_lat), "canopy_radius_m": 6.0, "height_m": 15.0}]
+        model = _make_model(trees=trees)
         buckets = model.shade_by_azimuth(ap_lat, ap_lon, n_buckets=24)
         assert buckets.argmax() == 0, f"north tree should land in bucket 0, got {buckets.argmax()}"
 
     def test_south_tree_lands_in_south_bucket(self):
         ap_lat, ap_lon = 40.655, -73.995
         south_lat = ap_lat - 25.0 / 111_320.0
-        trees = gpd.GeoDataFrame(
-            [{"geometry": Point(ap_lon, south_lat), "canopy_radius_m": 6.0, "height_m": 15.0}],
-            crs="EPSG:4326",
-        )
-        model = _make_model(trees_gdf=trees)
+        trees = [{"geometry": Point(ap_lon, south_lat), "canopy_radius_m": 6.0, "height_m": 15.0}]
+        model = _make_model(trees=trees)
         buckets = model.shade_by_azimuth(ap_lat, ap_lon, n_buckets=24)
         # Bucket 12 of 24 is centred on 180° (south).
         assert buckets.argmax() == 12, f"south tree should land in bucket 12, got {buckets.argmax()}"
@@ -95,15 +77,12 @@ class TestDirectionalShade:
     def test_buckets_clipped_to_one(self):
         # Many overlapping trees in one direction should not exceed 1.0 in any bucket.
         ap_lat, ap_lon = 40.655, -73.995
-        trees = gpd.GeoDataFrame(
-            [
-                {"geometry": Point(ap_lon, ap_lat + d / 111_320.0),
-                 "canopy_radius_m": 6.0, "height_m": 15.0}
-                for d in (1.0, 2.0, 3.0, 4.0, 5.0)  # all very close, all north
-            ],
-            crs="EPSG:4326",
-        )
-        model = _make_model(trees_gdf=trees)
+        trees = [
+            {"geometry": Point(ap_lon, ap_lat + d / 111_320.0),
+             "canopy_radius_m": 6.0, "height_m": 15.0}
+            for d in (1.0, 2.0, 3.0, 4.0, 5.0)  # all very close, all north
+        ]
+        model = _make_model(trees=trees)
         buckets = model.shade_by_azimuth(ap_lat, ap_lon, n_buckets=24)
         assert (buckets <= 1.0 + 1e-9).all()
 

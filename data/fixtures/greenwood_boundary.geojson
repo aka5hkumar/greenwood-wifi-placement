@@ -1,0 +1,16 @@
+{
+  "type": "Feature",
+  "properties": { "name": "Green-Wood Cemetery", "source": "crude manual 6-vertex approximation" },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[
+      [-73.988389, 40.659194],
+      [-73.995194, 40.659556],
+      [-74.002056, 40.652944],
+      [-73.989083, 40.644250],
+      [-73.980500, 40.647750],
+      [-73.981917, 40.655278],
+      [-73.988389, 40.659194]
+    ]]
+  }
+}

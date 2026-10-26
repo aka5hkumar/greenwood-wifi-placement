@@ -1,33 +1,25 @@
-"""Fetch Green-Wood Cemetery boundary, trees, buildings, and paths from OpenStreetMap.
+"""Fetch a site boundary, trees, buildings, and paths from OpenStreetMap.
 
-All results are cached to data/cache/ as GeoJSON/JSON so Overpass is only
-hit on the first run (or when --no-cache is passed).  No API keys required.
+Works for any location, not just Green-Wood: fetch_boundary() resolves the
+smallest enclosing park/cemetery/campus/nature-reserve feature around a
+given point. fetch_trees/fetch_buildings/fetch_paths already only need a
+boundary polygon and are location-agnostic.
+
+Results are cached to data/cache/ as plain GeoJSON (keyed by `cache_key`, so
+multiple locations don't collide) so Overpass is only hit once per site, or
+when no_cache=True is passed. No API keys required; no geopandas/GDAL
+dependency — geometries are plain shapely objects.
 """
 
 import json
 import os
 import time
 
-import geopandas as gpd
 import overpy
-from shapely.geometry import LineString, Point, Polygon
+from shapely.geometry import LineString, Point, Polygon, mapping, shape
 from shapely.ops import unary_union
 
-from constants import CEMETERY_RELATION_ID, BOUNDARY_OVERRIDE_POLYGON
-
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
-
-# Crude 6-vertex Green-Wood polygon — used only as a last-resort fallback if
-# Overpass is unreachable AND no override is configured. Refine the boundary
-# via BOUNDARY_OVERRIDE_POLYGON in constants.py rather than editing this.
-_FALLBACK_POLYGON = [
-    (-73.988389, 40.659194),
-    (-73.995194, 40.659556),
-    (-74.002056, 40.652944),
-    (-73.989083, 40.644250),
-    (-73.980500, 40.647750),
-    (-73.981917, 40.655278),
-]
 
 # Overpass endpoints tried in order; first success wins.
 _ENDPOINTS = [
@@ -37,6 +29,14 @@ _ENDPOINTS = [
 ]
 _RETRIES_PER_ENDPOINT = 2
 _RETRY_DELAY_S = 3
+
+# Tags that plausibly bound a walkable site worth covering with WiFi.
+_SITE_TAG_FILTERS = [
+    ('leisure', 'park|nature_reserve|garden|recreation_ground'),
+    ('landuse', 'cemetery|recreation_ground|forest|religious'),
+    ('amenity', 'grave_yard|university|college'),
+    ('boundary', 'national_park|protected_area'),
+]
 
 
 # ---------------------------------------------------------------------------
@@ -69,22 +69,18 @@ def _bbox(boundary: Polygon) -> tuple[float, float, float, float]:
     return south, west, north, east
 
 
-def _cache_path(name: str) -> str:
-    return os.path.join(CACHE_DIR, f"osm_{name}.geojson")
+def _boundary_cache_path(cache_key: str) -> str:
+    return os.path.join(CACHE_DIR, f"osm_boundary_{cache_key}.json")
 
 
-def _boundary_cache_path() -> str:
-    return os.path.join(CACHE_DIR, "osm_boundary.json")
-
-
-def _save_boundary(poly: Polygon) -> None:
+def _save_boundary(poly: Polygon, cache_key: str) -> None:
     os.makedirs(CACHE_DIR, exist_ok=True)
-    with open(_boundary_cache_path(), "w") as f:
+    with open(_boundary_cache_path(cache_key), "w") as f:
         json.dump(list(poly.exterior.coords), f)
 
 
-def _load_boundary() -> Polygon | None:
-    p = _boundary_cache_path()
+def _load_boundary(cache_key: str) -> Polygon | None:
+    p = _boundary_cache_path(cache_key)
     if not os.path.exists(p):
         return None
     with open(p) as f:
@@ -92,16 +88,32 @@ def _load_boundary() -> Polygon | None:
     return Polygon(coords)
 
 
-def _save_gdf(gdf: gpd.GeoDataFrame, name: str) -> None:
+def _records_cache_path(cache_key: str, name: str) -> str:
+    return os.path.join(CACHE_DIR, f"osm_{name}_{cache_key}.geojson")
+
+
+def _save_records(records: list[dict], cache_key: str, name: str) -> None:
     os.makedirs(CACHE_DIR, exist_ok=True)
-    gdf.to_file(_cache_path(name), driver="GeoJSON")
+    features = []
+    for rec in records:
+        props = {k: v for k, v in rec.items() if k != "geometry"}
+        features.append({"type": "Feature", "geometry": mapping(rec["geometry"]), "properties": props})
+    with open(_records_cache_path(cache_key, name), "w") as f:
+        json.dump({"type": "FeatureCollection", "features": features}, f)
 
 
-def _load_gdf(name: str) -> gpd.GeoDataFrame | None:
-    p = _cache_path(name)
+def _load_records(cache_key: str, name: str) -> list[dict] | None:
+    p = _records_cache_path(cache_key, name)
     if not os.path.exists(p):
         return None
-    return gpd.read_file(p)
+    with open(p) as f:
+        fc = json.load(f)
+    records = []
+    for feat in fc["features"]:
+        rec = dict(feat["properties"])
+        rec["geometry"] = shape(feat["geometry"])
+        records.append(rec)
+    return records
 
 
 def _ways_to_polygon(relation_result, relation) -> Polygon | None:
@@ -131,53 +143,90 @@ def _ways_to_polygon(relation_result, relation) -> Polygon | None:
 # Public API
 # ---------------------------------------------------------------------------
 
-def fetch_cemetery_boundary(no_cache: bool = False) -> Polygon:
-    """Return the cemetery boundary as a Shapely Polygon (lon/lat).
+def fetch_boundary(
+    lat: float,
+    lon: float,
+    no_cache: bool = False,
+    cache_key: str = "default",
+    override_polygon: list[tuple[float, float]] | None = None,
+    search_radius_m: int = 1500,
+) -> Polygon | None:
+    """
+    Resolve a site boundary polygon for an arbitrary point.
 
     Resolution order:
-      1. BOUNDARY_OVERRIDE_POLYGON in constants.py, if it has ≥ 3 points
-      2. Cached OSM polygon (unless --no-cache)
-      3. Live Overpass query for the cemetery relation
-      4. Hardcoded 6-vertex fallback (last resort)
+      1. override_polygon, if given (≥ 3 vertices) — e.g. a user-drawn
+         boundary from the web UI, or a known fixture for a default demo site
+      2. cached polygon for this cache_key (unless no_cache)
+      3. live Overpass query for the smallest enclosing park/cemetery/campus/
+         nature-reserve feature containing (lat, lon)
+
+    Returns None if no enclosing feature is found — callers should fall back
+    to a user-drawn polygon or a fixed-radius circle around the point.
     """
-    if len(BOUNDARY_OVERRIDE_POLYGON) >= 3:
-        poly = Polygon(BOUNDARY_OVERRIDE_POLYGON)
-        print(f"Cemetery boundary from BOUNDARY_OVERRIDE_POLYGON "
-              f"({len(BOUNDARY_OVERRIDE_POLYGON)} vertices).")
-        return poly
+    if override_polygon and len(override_polygon) >= 3:
+        print(f"Boundary from override polygon ({len(override_polygon)} vertices).")
+        return Polygon(override_polygon)
 
     if not no_cache:
-        cached = _load_boundary()
+        cached = _load_boundary(cache_key)
         if cached is not None:
-            print("Cemetery boundary loaded from cache.")
+            print("Boundary loaded from cache.")
             return cached
 
+    filters = "\n      ".join(
+        f'way(around:{search_radius_m},{lat},{lon})["{tag}"~"^({pattern})$"];\n'
+        f'      relation(around:{search_radius_m},{lat},{lon})["{tag}"~"^({pattern})$"];'
+        for tag, pattern in _SITE_TAG_FILTERS
+    )
     query = f"""
-    [out:json][timeout:60];
-    relation({CEMETERY_RELATION_ID});
-    out geom;
+    [out:json][timeout:25];
+    (
+      {filters}
+    );
+    (._;>;);
+    out body;
     """
     try:
         result = _query(query)
-        if result.relations:
-            rel = result.relations[0]
-            poly = _ways_to_polygon(result, rel)
-            if poly and not poly.is_empty:
-                print(f"Cemetery boundary fetched: {poly.area:.6f} sq-deg")
-                _save_boundary(poly)
-                return poly
     except Exception as exc:
-        print(f"Relation fetch failed ({exc}), using hardcoded fallback polygon.")
+        print(f"Boundary lookup failed ({exc}).")
+        return None
 
-    poly = Polygon(_FALLBACK_POLYGON)
-    _save_boundary(poly)
+    point = Point(lon, lat)
+    candidates = []
+
+    for way in result.ways:
+        try:
+            coords = [(float(n.lon), float(n.lat)) for n in way.nodes]
+        except Exception:
+            continue
+        if len(coords) >= 4 and coords[0] == coords[-1]:
+            poly = Polygon(coords)
+            if poly.is_valid and poly.contains(point):
+                candidates.append(poly)
+
+    for relation in result.relations:
+        poly = _ways_to_polygon(result, relation)
+        if poly and not poly.is_empty and poly.is_valid and poly.contains(point):
+            candidates.append(poly)
+
+    if not candidates:
+        print("No enclosing park/cemetery/campus feature found near this point.")
+        return None
+
+    # Prefer the smallest enclosing feature — avoids grabbing a huge forest
+    # or admin boundary when the point is inside a small garden within it.
+    poly = min(candidates, key=lambda p: p.area)
+    print(f"Boundary resolved: {poly.area:.6f} sq-deg")
+    _save_boundary(poly, cache_key)
     return poly
 
 
-def fetch_trees(boundary: Polygon, no_cache: bool = False) -> gpd.GeoDataFrame:
-    """Return OSM trees inside the cemetery as a GeoDataFrame of Points."""
+def fetch_trees(boundary: Polygon, no_cache: bool = False, cache_key: str = "default") -> list[dict]:
+    """Return OSM trees inside the boundary as [{"geometry": Point, "canopy_radius_m", "height_m"}, ...]."""
     if not no_cache:
-        cached = _load_gdf("trees")
+        cached = _load_records(cache_key, "trees")
         if cached is not None:
             print(f"Trees loaded from cache: {len(cached)}")
             return cached
@@ -216,16 +265,15 @@ def fetch_trees(boundary: Polygon, no_cache: bool = False) -> gpd.GeoDataFrame:
                 "height_m": height_m if height_m > 0 else None,
             })
 
-    gdf = gpd.GeoDataFrame(records, crs="EPSG:4326")
-    print(f"Trees fetched: {len(gdf)}")
-    _save_gdf(gdf, "trees")
-    return gdf
+    print(f"Trees fetched: {len(records)}")
+    _save_records(records, cache_key, "trees")
+    return records
 
 
-def fetch_buildings(boundary: Polygon, no_cache: bool = False) -> gpd.GeoDataFrame:
-    """Return OSM building footprints inside the cemetery as a GeoDataFrame."""
+def fetch_buildings(boundary: Polygon, no_cache: bool = False, cache_key: str = "default") -> list[dict]:
+    """Return OSM building footprints inside the boundary as [{"geometry": Polygon}, ...]."""
     if not no_cache:
-        cached = _load_gdf("buildings")
+        cached = _load_records(cache_key, "buildings")
         if cached is not None:
             print(f"Buildings loaded from cache: {len(cached)}")
             return cached
@@ -253,16 +301,15 @@ def fetch_buildings(boundary: Polygon, no_cache: bool = False) -> gpd.GeoDataFra
             if poly.is_valid and boundary.intersects(poly):
                 records.append({"geometry": poly})
 
-    gdf = gpd.GeoDataFrame(records, crs="EPSG:4326")
-    print(f"Buildings fetched: {len(gdf)}")
-    _save_gdf(gdf, "buildings")
-    return gdf
+    print(f"Buildings fetched: {len(records)}")
+    _save_records(records, cache_key, "buildings")
+    return records
 
 
-def fetch_paths(boundary: Polygon, no_cache: bool = False) -> gpd.GeoDataFrame:
-    """Return OSM footway/path/road geometries inside the cemetery as a GeoDataFrame."""
+def fetch_paths(boundary: Polygon, no_cache: bool = False, cache_key: str = "default") -> list[dict]:
+    """Return OSM footway/path/road geometries inside the boundary as [{"geometry": LineString}, ...]."""
     if not no_cache:
-        cached = _load_gdf("paths")
+        cached = _load_records(cache_key, "paths")
         if cached is not None:
             print(f"Paths loaded from cache: {len(cached)}")
             return cached
@@ -289,7 +336,6 @@ def fetch_paths(boundary: Polygon, no_cache: bool = False) -> gpd.GeoDataFrame:
             if boundary.intersects(line):
                 records.append({"geometry": line})
 
-    gdf = gpd.GeoDataFrame(records, crs="EPSG:4326")
-    print(f"Paths fetched: {len(gdf)}")
-    _save_gdf(gdf, "paths")
-    return gdf
+    print(f"Paths fetched: {len(records)}")
+    _save_records(records, cache_key, "paths")
+    return records

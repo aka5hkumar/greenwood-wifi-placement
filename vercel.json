@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/compute.py": { "maxDuration": 60 },
+    "api/boundary.py": { "maxDuration": 25 },
+    "api/geocode.py": { "maxDuration": 10 }
+  }
+}

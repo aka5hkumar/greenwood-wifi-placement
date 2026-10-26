@@ -1,18 +1,31 @@
-# Green-Wood Cemetery WiFi AP Placement Optimizer
+# WiFi AP Placement Optimizer
 
-Calculates the minimum number of solar-powered WiFi access points needed to cover Green-Wood Cemetery in Brooklyn, NY, and outputs their optimal locations.
+Calculates the minimum number of solar-powered WiFi access points needed to
+cover a park, cemetery, or campus, and outputs their optimal locations. Built
+originally for Green-Wood Cemetery in Brooklyn, NY — now generalized to work
+anywhere.
+
+**Live demo:** an interactive Next.js + Vercel-hosted version of this tool
+lets you search for any location and see a live computed placement on a map
+(see `/app` for the frontend, `/api` for the serverless compute route). This
+README covers the underlying Python pipeline, which both the CLI and the web
+app share.
 
 ## What it does
 
 Given the rated range of an access point on each frequency band, the tool:
 
-1. Fetches cemetery topology, tree cover, and building footprints from OpenStreetMap
-2. Downloads a 5 m elevation raster from USGS 3DEP
-3. Pulls multi-year monthly solar irradiance from NASA POWER
-4. Models RF propagation using ITU-R P.833 vegetation attenuation
-5. Checks solar viability for each candidate location (100 W panel, 10 W load, 50 Wh battery)
-6. Solves an Integer Linear Program (PuLP/CBC) to minimize AP count
-7. Writes results as JSON, a Google Earth KML overlay, and a Markdown summary
+1. Resolves the site boundary — the smallest enclosing park/cemetery/campus/
+   nature-reserve feature on OpenStreetMap around a given point (or a
+   user-supplied polygon)
+2. Fetches tree cover and building footprints from OpenStreetMap
+3. Queries a bare-earth elevation grid from a free point-query API
+4. Pulls multi-year monthly solar irradiance from NASA POWER
+5. Models RF propagation using ITU-R P.833 vegetation attenuation
+6. Checks solar viability for each candidate location (100 W panel, 10 W load,
+   50 Wh battery)
+7. Solves an Integer Linear Program (HiGHS, via scipy) to minimize AP count
+8. Writes results as JSON, a Google Earth KML overlay, and a Markdown summary
 
 **No API keys required.** All data sources are free and open.
 
@@ -24,28 +37,40 @@ Given the rated range of an access point on each frequency band, the tool:
 | Load | 10 W continuous |
 | Battery | 50 Wh |
 | Derating factor | 0.80 (temperature, wiring, soiling) |
-| Design basis | Worst above-freezing month with sufficient sun (~October for Brooklyn) |
+| Design basis | Worst above-freezing month with sufficient sun |
 | Thermal cutoff | Below ~34 °F average monthly temperature |
 
 ## Usage
 
+### Web app (recommended)
+
 ```bash
-# Quick start using Makefile (2000 ft / 1250 ft defaults)
+npm install
+npm run dev        # or: vercel dev — runs the Next.js frontend + Python API together
+```
+
+Open `http://localhost:3000`, search for a location, tune the AP range, and
+run a live compute. Green-Wood loads instantly from a pre-baked result on
+first visit; any other search runs the full pipeline live (can take up to
+~60s depending on site size).
+
+### CLI
+
+```bash
+# Quick start using Makefile (Green-Wood defaults)
 make run
 
 # Or with venv active:
+python3 main.py                                  # Green-Wood, default ranges
+python3 main.py --range-2g 500 --range-5g 260     # override ranges
+python3 main.py --range-6g 200                    # with 6 GHz tri-band AP
+python3 main.py --coverage paths                  # cover walkable paths only
 
-# Default ranges (2000 ft 2.4 GHz / 1250 ft 5 GHz)
-python3 main.py
+# Any other location — pass a point inside the site
+python3 main.py --lat 37.7694 --lon -122.4862 --site-name "Golden Gate Park"
 
-# Override ranges
-python3 main.py --range-2g 500 --range-5g 260
-
-# With 6 GHz tri-band AP
-python3 main.py --range-6g 200
-
-# Cover walkable paths only (faster, fewer APs)
-python3 main.py --coverage paths
+# Supply an exact boundary instead of the auto-resolved OSM polygon
+python3 main.py --boundary-file my_site.geojson --site-name "My Park"
 
 # Re-fetch all external data
 python3 main.py --no-cache
@@ -53,7 +78,7 @@ python3 main.py --no-cache
 
 All range values are in **feet**.
 
-### Outputs
+### Outputs (CLI)
 
 | File | Description |
 |---|---|
@@ -66,49 +91,68 @@ The KML pins are colour-coded: **green** = solar viable, **yellow** = marginal (
 ## Setup
 
 ```bash
-# One-time: create venv and install dependencies
+# Python: one-time venv + deps
 make venv
-
 # Or manually:
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt pytest
+
+# Frontend
+npm install
 ```
 
 ## Running the tests
 
 ```bash
 make test
-
 # Or manually (with venv active):
 python3 -m pytest tests/ -v
 ```
 
-Tests cover coordinate ordering, grid transforms, RF physics, solar budget logic, and the ILP optimizer — so porting to a new location will catch regressions immediately.
+Tests cover coordinate ordering, grid transforms, RF physics, solar budget
+logic, and the ILP optimizer — so porting to a new location catches
+regressions immediately.
 
 ## Project structure
 
 ```
+├── app/                     Next.js frontend (search, map, params, results)
+├── api/                     Vercel Python serverless functions
+│   ├── compute.py           Runs the full placement pipeline for a site
+│   ├── geocode.py           Nominatim place-search proxy
+│   └── boundary.py          Resolves/previews a site boundary before compute
 ├── data/
-│   ├── osm.py              OSM boundary, trees, buildings, paths (cached)
-│   ├── elevation.py        USGS 3DEP elevation raster (cached)
-│   ├── solar_irradiance.py NASA POWER monthly GHI + temperature (cached)
-│   └── interference.py     Optional WiGLE RF interference layer
+│   ├── osm.py               OSM boundary, trees, buildings, paths (cached, any location)
+│   ├── elevation.py         Bare-earth elevation via a free point-query API (cached)
+│   ├── solar_irradiance.py  NASA POWER monthly GHI + temperature (cached)
+│   ├── interference.py      Optional WiGLE RF interference layer
+│   └── fixtures/            Static boundary fixtures (e.g. Green-Wood's default)
 ├── models/
-│   ├── terrain.py          DSM construction, vectorised LOS ray-casting
-│   ├── rf.py               ITU-R P.833 vegetation attenuation model
-│   └── power.py            Solar harvest vs 240 Wh/day demand
+│   ├── terrain.py           DSM construction, vectorised LOS ray-casting
+│   ├── rf.py                ITU-R P.833 vegetation attenuation model
+│   ├── power.py              Solar harvest vs 240 Wh/day demand
+│   └── sizing.py            Area-size guardrail for the live serverless path
 ├── optimize/
-│   └── placer.py           PuLP ILP set-cover optimizer
+│   └── placer.py            HiGHS ILP set-cover optimizer
 ├── output/
-│   └── writer.py           JSON, KML, and Markdown writers
-├── tests/                  Unit tests (no network calls)
-├── plans/                  Planning documents
-└── main.py                 CLI entry point
+│   └── writer.py             JSON, KML, and Markdown writers (CLI only)
+├── tests/                    Unit tests (no network calls)
+├── plans/                    Planning documents
+├── public/demo/              Pre-baked Green-Wood result for instant first load
+└── main.py                   CLI entry point + run_pipeline() shared with api/compute.py
 ```
 
 ## Notes
 
-- External data is cached in `data/cache/` after the first run — subsequent runs are fully offline
-- November and December have insufficient sun for 24/7 operation at this latitude even with a fully exposed panel; the tool flags these as shoulder months in the summary
-- The `--wigle-key` flag enables an optional RF interference layer from WiGLE.net (free account required)
+- External data is cached in `data/cache/` after the first run, keyed per
+  site — subsequent runs of the same site are fully offline. The live web app
+  doesn't rely on this cache (serverless filesystems are ephemeral); it always
+  computes live, gated by an area-size cap (see `models/sizing.py`) that keeps
+  requests within the hosting platform's function-timeout budget.
+- November and December (and similar shoulder months at other latitudes) can
+  have insufficient sun for 24/7 operation even with a fully exposed panel;
+  the tool flags these as shoulder months in the summary.
+- The `--wigle-key`-style optional RF interference layer (`data/interference.py`)
+  is not currently wired into the CLI or API — it's a free-standing module you
+  can call directly if you have a WiGLE.net API key.

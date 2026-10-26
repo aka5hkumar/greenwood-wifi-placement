@@ -11,7 +11,10 @@ import os
 import requests
 
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
-SOLAR_CACHE = os.path.join(CACHE_DIR, "solar.json")
+
+
+def _solar_cache_path(cache_key: str) -> str:
+    return os.path.join(CACHE_DIR, f"solar_{cache_key}.json")
 
 NASA_URL = "https://power.larc.nasa.gov/api/temporal/monthly/point"
 
@@ -47,19 +50,23 @@ def fetch_solar_and_temperature(
     lat: float = DEFAULT_LAT,
     lon: float = DEFAULT_LON,
     no_cache: bool = False,
+    cache_key: str = "default",
 ) -> dict:
     """
     Return monthly solar and temperature data as:
         {month_int_str: {"ghi_wh_per_day": float, "avg_temp_f": float, "month_name": str}}
 
     Tries NASA POWER for live multi-year averages; falls back to hardcoded
-    Brooklyn values if the request fails.
+    Brooklyn values if the request fails (NB: that fallback is Brooklyn-
+    specific climate data — only a reasonable stand-in at other locations
+    when NASA POWER itself is unreachable).
     """
     os.makedirs(CACHE_DIR, exist_ok=True)
+    cache_path = _solar_cache_path(cache_key)
 
-    if not no_cache and os.path.exists(SOLAR_CACHE):
+    if not no_cache and os.path.exists(cache_path):
         print("Loading solar data from cache...")
-        with open(SOLAR_CACHE) as f:
+        with open(cache_path) as f:
             return json.load(f)
 
     result = _fetch_nasa_power(lat, lon)
@@ -70,7 +77,7 @@ def fetch_solar_and_temperature(
             for m, d in _BROOKLYN_FALLBACK.items()
         }
 
-    with open(SOLAR_CACHE, "w") as f:
+    with open(cache_path, "w") as f:
         json.dump(result, f, indent=2)
     return result
 
