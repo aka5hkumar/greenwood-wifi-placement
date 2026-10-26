@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   title: "Solar WiFi Placement Optimizer",
   description:
     "Computes minimal solar-powered WiFi AP placement for any park, cemetery, or campus using OSM topology, elevation-based line-of-sight, and ILP set-cover optimization.",
+  // Keeps this portfolio demo out of search indexes — it's reachable by
+  // anyone with the link, just not crawled/surfaced, which cuts down on
+  // bot traffic against the free upstream APIs (Nominatim/Overpass/
+  // Open-Topo-Data) the live-compute path depends on.
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -156,3 +156,13 @@ regressions immediately.
 - The `--wigle-key`-style optional RF interference layer (`data/interference.py`)
   is not currently wired into the CLI or API — it's a free-standing module you
   can call directly if you have a WiGLE.net API key.
+- The site is public but kept out of search indexes (`robots.txt` + a
+  `noindex` meta tag) to cut down on bot/crawler traffic, since the live
+  compute path depends on free, rate-limited upstream APIs (Nominatim,
+  Overpass, Open-Topo-Data). `api/compute.py` also enforces a strict
+  per-IP rate limit, the two read-mostly lookup routes (`geocode`,
+  `boundary`) set `Cache-Control` headers so repeat queries are served from
+  Vercel's edge cache, and all three check same-origin before doing any
+  work. This is in-memory/best-effort (resets on cold start, not shared
+  across concurrent instances) — fine for a portfolio demo; swap in Vercel
+  KV/Upstash for anything higher-traffic.

@@ -26,6 +26,7 @@ from http.server import BaseHTTPRequestHandler
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from _respond import respond
+from _ratelimit import allow, same_origin
 from main import (
     run_pipeline,
     AreaTooLargeError,
@@ -36,6 +37,13 @@ from main import (
 
 _KNOWN_ERRORS = (NoBoundaryError, NoViableCandidatesError, NoSolutionError)
 
+# This is by far the most expensive route (real OSM/elevation/solar fetches +
+# an ILP solve per call) and the one most worth protecting — a handful of
+# live runs per IP per window is plenty for a demo, and keeps the free
+# upstream elevation/OSM APIs from getting hammered by a scraper or bot.
+_RATE_LIMIT = 6
+_RATE_WINDOW_S = 600.0
+
 
 def _clean(result: dict) -> dict:
     """Drop internal/non-JSON-safe fields (numpy arrays) meant only for the CLI."""
@@ -44,6 +52,17 @@ def _clean(result: dict) -> dict:
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
+        if not same_origin(self):
+            respond(self, 403, {"ok": False, "error": "forbidden", "message": "Cross-origin requests to this API are not allowed."})
+            return
+        if not allow(self, limit=_RATE_LIMIT, window_s=_RATE_WINDOW_S):
+            respond(
+                self, 429,
+                {"ok": False, "error": "rate_limited", "message": "Too many live computes from this address — please wait a bit and try again."},
+                headers={"Retry-After": str(int(_RATE_WINDOW_S))},
+            )
+            return
+
         length = int(self.headers.get("Content-Length", 0) or 0)
         raw = self.rfile.read(length) if length else b"{}"
         try:

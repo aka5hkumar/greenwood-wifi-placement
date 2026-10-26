@@ -12,8 +12,11 @@ import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from _respond import respond
+from _ratelimit import allow
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+_RATE_LIMIT = 30
+_RATE_WINDOW_S = 60.0
 # Nominatim's usage policy requires an identifying User-Agent — override via
 # env var if you fork this for your own deployment.
 USER_AGENT = os.environ.get(
@@ -24,6 +27,13 @@ USER_AGENT = os.environ.get(
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if not allow(self, limit=_RATE_LIMIT, window_s=_RATE_WINDOW_S):
+            respond(
+                self, 429, {"ok": False, "error": "rate_limited", "message": "Too many searches — please slow down."},
+                headers={"Retry-After": str(int(_RATE_WINDOW_S))},
+            )
+            return
+
         qs = parse_qs(urlparse(self.path).query)
         q = (qs.get("q") or [""])[0].strip()
         if not q:
@@ -52,4 +62,6 @@ class handler(BaseHTTPRequestHandler):
             }
             for r in data
         ]
-        respond(self, 200, {"ok": True, "results": results})
+        # Identical searches get served from Vercel's edge cache instead of
+        # hitting Nominatim again — cuts real load against its free tier.
+        respond(self, 200, {"ok": True, "results": results}, headers={"Cache-Control": "public, max-age=3600"})

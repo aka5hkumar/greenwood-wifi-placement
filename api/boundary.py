@@ -17,11 +17,22 @@ from urllib.parse import urlparse, parse_qs
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from _respond import respond
+from _ratelimit import allow
 from data.osm import fetch_boundary
+
+_RATE_LIMIT = 20
+_RATE_WINDOW_S = 60.0
 
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if not allow(self, limit=_RATE_LIMIT, window_s=_RATE_WINDOW_S):
+            respond(
+                self, 429, {"ok": False, "error": "rate_limited", "message": "Too many requests — please slow down."},
+                headers={"Retry-After": str(int(_RATE_WINDOW_S))},
+            )
+            return
+
         qs = parse_qs(urlparse(self.path).query)
         try:
             lat = float(qs["lat"][0])
@@ -37,9 +48,11 @@ class handler(BaseHTTPRequestHandler):
             respond(self, 502, {"ok": False, "error": "boundary_lookup_failed", "message": str(exc)})
             return
 
+        cache_headers = {"Cache-Control": "public, max-age=3600"}
+
         if boundary is None:
-            respond(self, 200, {"ok": True, "boundary": None})
+            respond(self, 200, {"ok": True, "boundary": None}, headers=cache_headers)
             return
 
         coords = [[lon_, lat_] for lon_, lat_ in boundary.exterior.coords]
-        respond(self, 200, {"ok": True, "boundary": coords})
+        respond(self, 200, {"ok": True, "boundary": coords}, headers=cache_headers)
