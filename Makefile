@@ -17,12 +17,12 @@ help:
 venv:
 	$(PYTHON) -m venv $(VENV)
 	$(PIP) install --upgrade pip
-	$(PIP) install -r api/requirements.txt pytest
+	$(PIP) install -r requirements.txt pytest
 	@echo "Venv ready. Activate with: source venv/bin/activate"
 
 install:
 	$(PIP) install --upgrade pip
-	$(PIP) install -r api/requirements.txt pytest
+	$(PIP) install -r requirements.txt pytest
 
 test:
 	$(PYTEST) tests/ -v
